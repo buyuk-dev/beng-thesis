@@ -11,3 +11,5 @@ Repository for everything related with my BEng thesis research.
 3. Investigate machine learning approaches that could be useful for the project.
 
 4. Design a data collection process.
+
+5. Reading data from Muse 2 headband via Python script.
