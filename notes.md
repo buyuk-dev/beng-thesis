@@ -107,4 +107,8 @@ https://hackaday.io/project/162169-muse-eeg-headset-making-extra-electrode
         </desc>
     </info>
 
+## EEG Processing
 
+The electrical potential accross the cell membrane is small, around -70 mV at rest (1000 microvolts in a millivolt), and it changes around -20 mV during electrical changes in the cell.
+
+If a large group of these tiny dipoles are aligned in space and their electrical potentials change at the same time, they can create electrical potentials which are large enough to conduct through the brain tissue and be measurable comparing different points on the head.
