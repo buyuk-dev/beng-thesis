@@ -122,3 +122,11 @@ Sleep state - Larger groups of neurons all fire together at low frequencies call
 
 We use the power of those brain waves (Beta, Delta, and others) to provide neurofeedback or create simple BCI (Brain-Computer Interfaces).
 
+Scalp and skull diffuse the electrical signal from the brain, so measurements performed outside contain very little spatial information about the signal's source. Additionally, each extracranial measurement could be caused by many different configurations of dipoles inside the brain.
+
+EEG electrodes locations are standarized in a regular grid covering the surface of the head.
+Each location is designated by a code:
+- letter indicating the location of the head (F-Frontal; C-Central; P-Parietal; T-Temporal; O-Occipital; Fp-Fronto-polar).
+- The suffix has a 'z' if along the midline, odd numbers over the left hemisphere, and even over the right.
+- Numbers start along the midline and get larger for more lateral sites on the head.
+
