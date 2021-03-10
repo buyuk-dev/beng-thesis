@@ -130,3 +130,7 @@ Each location is designated by a code:
 - The suffix has a 'z' if along the midline, odd numbers over the left hemisphere, and even over the right.
 - Numbers start along the midline and get larger for more lateral sites on the head.
 
+Can location of reference electrode affect the signal quality?
+How about using multiple reference electrodes?
+What if we used each electrode as a reference for all others creating a fully connected graph of electrodes/reference electrodes?
+Would more reference electrodes yield more spatial information about the signal source?
