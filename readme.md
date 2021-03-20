@@ -24,11 +24,18 @@ https://www.researchgate.net/publication/338186731_Consumer_grade_EEG_Measuring_
 https://eegedu.com/
 
 
+## Dependencies for data collection app
+
+    sudo apt install python3 python3-pip tk-dev python3-tk
+    python3 -m pip install tk matplotlib
+
+
 ## Installing MuseLSL python library
 
 https://github.com/alexandrebarachant/muse-lsl
 https://github.com/alexandrebarachant/muse-lsl/blob/master/examples/neurofeedback.py
 
+    sudo apt-get install libglfw3-dev libgles2-mesa-dev      // If egl display config issue
     sudo apt install libpcap-dev libpcap0.8 libpcap0.8-dev
     sudo apt install python3-tk
     sudo apt install python3-vispy
@@ -46,9 +53,8 @@ https://github.com/alexandrebarachant/muse-lsl/blob/master/examples/neurofeedbac
     muselsl stream -a "00:55:DA:B5:7E:45"
 
     muselsl view
-    muselsl view --version 2
+    muselsl view --version 2                    // if segfault without --version
     muselsl view --version 2 --window 10
-
 
 ## Muse usage:
 
