@@ -9,12 +9,18 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import math
 import random
+from datetime import datetime
 
 import threading
 import time
 
 
+DATA_X = [0] * 100
+DATA_Y = list(range(100))
+
+
 class ProcessorThread(threading.Thread):
+
     def __init__(self, *args, **kwargs):
         super(ProcessorThread, self).__init__(*args, **kwargs)
         self._stop_event = threading.Event()
@@ -26,14 +32,22 @@ class ProcessorThread(threading.Thread):
         return self._stop_event.is_set()
 
     def run(self):
+        global DATA_X
         while not self.stopped():
             try:
-                data = [random.random() for i in range(100)]
-                time.sleep(1.0)
+                DATA_X = [random.random() for i in range(100)]
+                time.sleep(0.1)
 
             except Exception as e:
                 print(e)
                 break
+
+
+def draw(_, data, subplot, canvas):
+    subplot.clear()
+    subplot.plot(DATA_Y, DATA_X)
+    canvas.draw()
+    pyplot.title("{} sec".format(datetime.now()))
 
 
 class GuiApp:
@@ -41,7 +55,6 @@ class GuiApp:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("EEG Music Preferences Data Collection Interface")
-        self.processor = ProcessorThread()
 
         def on_like():
             print("Signal: +1")
@@ -56,18 +69,12 @@ class GuiApp:
             self.start_recording.configure(state='disabled')
             self.stop_recording.configure(state='normal')
             print("Recording started")
-            data_x = [random.random() for i in range(100)]
-            data_y = list(range(100))
-            self.ax.plot(data_y, data_x)
-            self.canvas.draw()
 
 
         def on_stop_recording():
             self.stop_recording.configure(state='disabled')
             self.start_recording.configure(state='normal')
             print("Recording stopped")
-            self.ax.clear()
-            self.canvas.draw()
 
         def on_app_close():
             self.processor.stop()
@@ -92,13 +99,15 @@ class GuiApp:
         self.start_recording.pack(side=tk.LEFT)
 
         self.stop_recording = tk.Button(self.control_frame, text="Stop recording", command=on_stop_recording, state='disabled')
-        self.stop_recording.pack(side=tk.LEFT)
+        self.stop_recording.pack(side=tk.LEFT) 
 
         # Signal plot canvas setup
         self.figure = pyplot.Figure()
+        self.ax = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.window)
         self.canvas.get_tk_widget().pack()
-        self.ax = self.figure.add_subplot(111)
+        self.ani = animation.FuncAnimation(self.figure, draw, fargs=(DATA_X, self.ax, self.canvas), interval=100)
+        self.processor = ProcessorThread()
 
     def run(self):
         self.processor.start()
