@@ -1,4 +1,5 @@
 import tkinter as tk
+import flask
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -13,7 +14,9 @@ from datetime import datetime
 
 import threading
 import time
+import webbrowser
 
+import spotify
 
 DATA_X = [0] * 100
 DATA_Y = list(range(100))
@@ -43,6 +46,36 @@ class ProcessorThread(threading.Thread):
                 break
 
 
+class ServerThread(threading.Thread):
+
+    def __init__(self, *args, **kwargs):
+        super(ServerThread, self).__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
+
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
+    def run(self):
+
+        server = flask.Flask("EegHttpServer")
+        server.debug = False
+
+        @server.route("/callback")
+        def authorization_callback():
+            """ if authorization request had 'state' argument
+                authorization_callback will also have the same argument.
+            """
+            code = flask.request.args.get("code")
+            return f"authorized: {code}"
+
+        server.run()
+
+
+
 def draw(_, data, subplot, canvas):
     subplot.clear()
     subplot.plot(DATA_Y, DATA_X)
@@ -55,6 +88,10 @@ class GuiApp:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("EEG Music Preferences Data Collection Interface")
+
+        url = spotify.authorize_user(None, None, "http://localhost:5000/callback")
+        webbrowser.open(url
+)
 
         def on_like():
             print("Signal: +1")
@@ -77,6 +114,7 @@ class GuiApp:
             print("Recording stopped")
 
         def on_app_close():
+            self.httpServer.stop()
             self.processor.stop()
             self.window.quit()
 
@@ -99,7 +137,7 @@ class GuiApp:
         self.start_recording.pack(side=tk.LEFT)
 
         self.stop_recording = tk.Button(self.control_frame, text="Stop recording", command=on_stop_recording, state='disabled')
-        self.stop_recording.pack(side=tk.LEFT) 
+        self.stop_recording.pack(side=tk.LEFT)
 
         # Signal plot canvas setup
         self.figure = pyplot.Figure()
@@ -108,13 +146,15 @@ class GuiApp:
         self.canvas.get_tk_widget().pack()
         self.ani = animation.FuncAnimation(self.figure, draw, fargs=(DATA_X, self.ax, self.canvas), interval=100)
         self.processor = ProcessorThread()
+        self.httpServer = ServerThread()
 
     def run(self):
+        self.httpServer.start()
         self.processor.start()
         self.window.mainloop()
-
 
 
 if __name__ == '__main__':
     gui = GuiApp()
     gui.run()
+
