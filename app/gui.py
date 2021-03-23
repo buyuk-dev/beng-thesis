@@ -21,7 +21,7 @@ import spotify
 
 DATA_X = [0] * 100
 DATA_Y = list(range(100))
-
+INFO_TEXT = ""
 
 class ProcessorThread(threading.Thread):
 
@@ -56,31 +56,36 @@ class ServerThread(threading.Thread):
 
     def stop(self):
         self._stop_event.set()
+        exit()
 
     def stopped(self):
         return self._stop_event.is_set()
 
     def run(self):
 
-        server = flask.Flask("EegHttpServer")
-        server.debug = False
+        self.server = flask.Flask("EegHttpServer")
+        self.server.debug = False
 
-        @server.route("/callback")
+        @self.server.route("/callback")
         def authorization_callback():
             """ if authorization request had 'state' argument
                 authorization_callback will also have the same argument.
             """
             code = flask.request.args.get("code")
-            print(f"1. Authorization code: {code}")
-            resp = spotify.request_token(code, "http://localhost:5000/callback")
-            print(f"2. Token resp:")
-            pprint.pprint(resp)
-            print("3. Current playback info:")
-            playback_info = spotify.get_current_playback_info(resp["access_token"])
-            pprint.pprint(playback_info)
-            return "ok"
+            code, resp = spotify.request_token(code, "http://localhost:5000/callback")
+            code, playback_info = spotify.get_current_playback_info(resp["access_token"])
 
-        server.run()
+            filtered = {}
+            filtered["artistis"] = playback_info["item"]["artists"][0]["name"]
+            filtered["song"] = playback_info["item"]["name"]
+            filtered["popularity"] = playback_info["item"]["popularity"]
+            filtered["album"] = playback_info["item"]["album"]["name"]
+            filtered["released"] = playback_info["item"]["album"]["release_date"]
+
+            global INFO_TEXT
+            INFO_TEXT = pprint.pformat(filtered, indent=4)
+
+        self.server.run()
 
 
 
@@ -123,9 +128,13 @@ class GuiApp:
         def on_app_close():
             self.httpServer.stop()
             self.processor.stop()
-            self.window.quit()
+            self.window.destroy()
 
-        self.window.protocol("WM_DELETE_WINDOW", on_app_close)
+        def periodic_update(text):
+            global INFO_TEXT
+            text.delete(1.0, tk.END)
+            text.insert(tk.INSERT, INFO_TEXT)
+            self.window.after(1000, periodic_update, self.response_field)
 
         # Buttons setup
         self.control_frame = tk.Frame(self.window)
@@ -146,6 +155,9 @@ class GuiApp:
         self.stop_recording = tk.Button(self.control_frame, text="Stop recording", command=on_stop_recording, state='disabled')
         self.stop_recording.pack(side=tk.LEFT)
 
+        self.response_field = tk.Text(self.window)
+        self.response_field.pack()
+
         # Signal plot canvas setup
         self.figure = pyplot.Figure()
         self.ax = self.figure.add_subplot(111)
@@ -154,6 +166,9 @@ class GuiApp:
         self.ani = animation.FuncAnimation(self.figure, draw, fargs=(DATA_X, self.ax, self.canvas), interval=100)
         self.processor = ProcessorThread()
         self.httpServer = ServerThread()
+
+        self.window.protocol("WM_DELETE_WINDOW", on_app_close)
+        self.window.after(1000, periodic_update, self.response_field)
 
     def run(self):
         self.httpServer.start()

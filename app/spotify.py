@@ -29,7 +29,7 @@ def request_token(code, redirect_uri):
         "client_secret": config.CLIENT_SECRET
     }
     resp = requests.post("https://accounts.spotify.com/api/token", data=params)
-    return resp.json()
+    return resp.status_code, resp.json()
 
 def get_current_playback_info(token):
     """ Returns current playback info.
@@ -38,7 +38,12 @@ def get_current_playback_info(token):
         "Authorization": f"Bearer {token}"
     }
     r = requests.get("https://api.spotify.com/v1/me/player", headers=headers)
-    return r.json()
+    code =  r.status_code
+
+    if code == 200:
+        return code, r.json()
+    else:
+        return code, r.text
 
 
 def add_item_to_liked_songs(item):
