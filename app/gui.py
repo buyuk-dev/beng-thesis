@@ -75,6 +75,9 @@ class ServerThread(threading.Thread):
             resp = spotify.request_token(code, "http://localhost:5000/callback")
             print(f"2. Token resp:")
             pprint.pprint(resp)
+            print("3. Current playback info:")
+            playback_info = spotify.get_current_playback_info(resp["access_token"])
+            pprint.pprint(playback_info)
             return "ok"
 
         server.run()

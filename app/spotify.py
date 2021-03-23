@@ -31,10 +31,14 @@ def request_token(code, redirect_uri):
     resp = requests.post("https://accounts.spotify.com/api/token", data=params)
     return resp.json()
 
-def get_current_playback_info():
+def get_current_playback_info(token):
     """ Returns current playback info.
     """
-    return None
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    r = requests.get("https://api.spotify.com/v1/me/player", headers=headers)
+    return r.json()
 
 
 def add_item_to_liked_songs(item):
