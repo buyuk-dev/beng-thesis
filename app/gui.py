@@ -15,6 +15,7 @@ from datetime import datetime
 import threading
 import time
 import webbrowser
+import pprint
 
 import spotify
 
@@ -70,7 +71,11 @@ class ServerThread(threading.Thread):
                 authorization_callback will also have the same argument.
             """
             code = flask.request.args.get("code")
-            return f"authorized: {code}"
+            print(f"1. Authorization code: {code}")
+            resp = spotify.request_token(code, "http://localhost:5000/callback")
+            print(f"2. Token resp:")
+            pprint.pprint(resp)
+            return "ok"
 
         server.run()
 
@@ -89,9 +94,8 @@ class GuiApp:
         self.window = tk.Tk()
         self.window.title("EEG Music Preferences Data Collection Interface")
 
-        url = spotify.authorize_user(None, None, "http://localhost:5000/callback")
-        webbrowser.open(url
-)
+        url = spotify.authorize_user("http://localhost:5000/callback")
+        webbrowser.open(url)
 
         def on_like():
             print("Signal: +1")
