@@ -1,5 +1,6 @@
 import tkinter as tk
 import flask
+import socket
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -47,12 +48,38 @@ class ProcessorThread(threading.Thread):
                 break
 
 
+class SpotifyCallbackThread(threading.Thread):
+
+    def __init__(self, *args, **kwargs):
+        super(SpotifyCallbackThread, self).__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    def stop(self):
+        self.s.close()
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
+    def run(self):
+        self.s.bind(("localhost", 5000))
+
+        while not self.stopped():
+            self.s.listen(1)
+            print('Listening on port 5000 ...')
+            client, address = self.s.accept()
+            request = client.recv(1024).decode()
+            print(request)
+            client.close()
+
+
 class ServerThread(threading.Thread):
 
     def __init__(self, *args, **kwargs):
         super(ServerThread, self).__init__(*args, **kwargs)
         self._stop_event = threading.Event()
-
 
     def stop(self):
         self._stop_event.set()
@@ -165,7 +192,8 @@ class GuiApp:
         self.canvas.get_tk_widget().pack()
         self.ani = animation.FuncAnimation(self.figure, draw, fargs=(DATA_X, self.ax, self.canvas), interval=100)
         self.processor = ProcessorThread()
-        self.httpServer = ServerThread()
+        #self.httpServer = ServerThread()
+        self.httpServer = SpotifyCallbackThread()
 
         self.window.protocol("WM_DELETE_WINDOW", on_app_close)
         self.window.after(1000, periodic_update, self.response_field)
@@ -177,6 +205,8 @@ class GuiApp:
 
 
 if __name__ == '__main__':
+    #server = SpotifyCallbackThread()
+    #server.start()
     gui = GuiApp()
     gui.run()
 
