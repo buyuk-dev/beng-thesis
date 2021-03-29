@@ -18,11 +18,12 @@ import time
 import webbrowser
 import pprint
 
+import configuration
 import spotify
 
 DATA_X = [0] * 100
 DATA_Y = list(range(100))
-INFO_TEXT = ""
+
 
 class ProcessorThread(threading.Thread):
 
@@ -64,15 +65,25 @@ class SpotifyCallbackThread(threading.Thread):
         return self._stop_event.is_set()
 
     def run(self):
+        """ Listen for callback from spotify with auth code.
+            After it arrives parse and request access token.
+        """
         self.s.bind(("localhost", 5000))
+        self.s.listen(1)
 
-        while not self.stopped():
-            self.s.listen(1)
-            print('Listening on port 5000 ...')
-            client, address = self.s.accept()
-            request = client.recv(1024).decode()
-            print(request)
-            client.close()
+        client, address = self.s.accept()
+
+        request = client.recv(512).decode()
+        client.close()
+
+        idx = request.find("HTTP")
+        request = request[:idx]
+        code_idx = request.find("code=")
+
+        code = request[code_idx:].split("=")[-1].strip()
+        code, resp = spotify.request_token(code, "http://localhost:5000/callback")
+
+        configuration.TOKEN = resp["access_token"]
 
 
 class ServerThread(threading.Thread):
@@ -100,71 +111,68 @@ class ServerThread(threading.Thread):
             """
             code = flask.request.args.get("code")
             code, resp = spotify.request_token(code, "http://localhost:5000/callback")
-            code, playback_info = spotify.get_current_playback_info(resp["access_token"])
+            configuration.TOKEN = resp["access_token"]
 
+        self.server.run()
+
+
+class TextArea(tk.Text):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    def set_text(self, text): 
+        self.delete(1.0, tk.END)
+        self.insert(tk.INSERT, text)
+
+
+class GuiApp(tk.Tk):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def on_like():
+            if configuration.TOKEN is None: 
+                print("Access token not available.")
+                return
+
+            code, playback_info = spotify.get_current_playback_info(configuration.TOKEN)
             filtered = {}
             filtered["artistis"] = playback_info["item"]["artists"][0]["name"]
             filtered["song"] = playback_info["item"]["name"]
             filtered["popularity"] = playback_info["item"]["popularity"]
             filtered["album"] = playback_info["item"]["album"]["name"]
             filtered["released"] = playback_info["item"]["album"]["release_date"]
-
-            global INFO_TEXT
-            INFO_TEXT = pprint.pformat(filtered, indent=4)
-
-        self.server.run()
-
-
-
-def draw(_, data, subplot, canvas):
-    subplot.clear()
-    subplot.plot(DATA_Y, DATA_X)
-    canvas.draw()
-    pyplot.title("{} sec".format(datetime.now()))
-
-
-class GuiApp:
-
-    def __init__(self):
-        self.window = tk.Tk()
-        self.window.title("EEG Music Preferences Data Collection Interface")
-
-        url = spotify.authorize_user("http://localhost:5000/callback")
-        webbrowser.open(url)
-
-        def on_like():
-            print("Signal: +1")
+           
+            text = pprint.pformat(filtered, indent=4)
+            self.response_field.set_text(text)
 
         def on_neutral():
-            print("Signal: 0")
+            pass
 
         def on_dislike():
-            print("Signal: -1")
+            httpServer = SpotifyCallbackThread()
+            url = spotify.authorize_user("http://localhost:5000/callback")
+            httpServer.start()
+            webbrowser.open(url)
+            httpServer.join()
 
         def on_start_recording():
             self.start_recording.configure(state='disabled')
             self.stop_recording.configure(state='normal')
-            print("Recording started")
-
 
         def on_stop_recording():
             self.stop_recording.configure(state='disabled')
             self.start_recording.configure(state='normal')
-            print("Recording stopped")
 
         def on_app_close():
-            self.httpServer.stop()
             self.processor.stop()
-            self.window.destroy()
+            self.destroy()
 
-        def periodic_update(text):
-            global INFO_TEXT
-            text.delete(1.0, tk.END)
-            text.insert(tk.INSERT, INFO_TEXT)
-            self.window.after(1000, periodic_update, self.response_field)
+        self.protocol("WM_DELETE_WINDOW", on_app_close)
+        self.title("EEG Music Preferences Data Collection Interface")
 
         # Buttons setup
-        self.control_frame = tk.Frame(self.window)
+        self.control_frame = tk.Frame(self)
         self.control_frame.pack()
 
         self.like = tk.Button(self.control_frame, text="Like", bg="green", command=on_like)
@@ -182,31 +190,35 @@ class GuiApp:
         self.stop_recording = tk.Button(self.control_frame, text="Stop recording", command=on_stop_recording, state='disabled')
         self.stop_recording.pack(side=tk.LEFT)
 
-        self.response_field = tk.Text(self.window)
+        self.response_field = TextArea(self)
         self.response_field.pack()
 
         # Signal plot canvas setup
         self.figure = pyplot.Figure()
         self.ax = self.figure.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.figure, master=self.window)
+
+        self.canvas = FigureCanvasTkAgg(self.figure, master=self)
         self.canvas.get_tk_widget().pack()
-        self.ani = animation.FuncAnimation(self.figure, draw, fargs=(DATA_X, self.ax, self.canvas), interval=100)
+        self.ani = animation.FuncAnimation(self.figure, self.draw, interval=100)
+
+        self.after(1000, self.periodic_update)
+
         self.processor = ProcessorThread()
-        #self.httpServer = ServerThread()
-        self.httpServer = SpotifyCallbackThread()
-
-        self.window.protocol("WM_DELETE_WINDOW", on_app_close)
-        self.window.after(1000, periodic_update, self.response_field)
-
-    def run(self):
-        self.httpServer.start()
         self.processor.start()
-        self.window.mainloop()
+
+    def draw(self, event):
+        global DATA_Y
+        global DATA_X
+        self.ax.clear()
+        self.ax.plot(DATA_Y, DATA_X)
+        self.ax.title.set_text("{} sec".format(datetime.now()))
+
+    def periodic_update(self):
+        print("periodic update...")
+        self.after(1000, self.periodic_update)
 
 
 if __name__ == '__main__':
-    #server = SpotifyCallbackThread()
-    #server.start()
-    gui = GuiApp()
-    gui.run()
+    app = GuiApp()
+    app.mainloop()
 
