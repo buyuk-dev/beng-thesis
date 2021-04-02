@@ -11,13 +11,14 @@
 
 import threading
 import socket
+from urllib.parse import urlparse
 
 
 class SocketListener(threading.Thread):
 
     NUMBER_OF_BYTES_TO_READ = 512
 
-    def __init__(self, on_callback, address="localhost:5000", *args, **kwargs):
+    def __init__(self, on_callback, callback_url, *args, **kwargs):
         """ Create callback listener using sockets.
             @param on_callback: function that takes authorization code passed by spotify api in callback query parameters.
             @param address: socket address on which callback hsould be set. Needs to be registered in the spotify developer project settings.
@@ -27,7 +28,9 @@ class SocketListener(threading.Thread):
         self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         self.on_callback = on_callback
-        self.host, self.port = address.split(":")
+
+        url = urlparse(callback_url) 
+        self.host, self.port = url.netloc.split(":")
         self.port = int(self.port)
 
     def receive_callback(self):

@@ -1,3 +1,7 @@
+""" The shitties phone in the world is a miracle.
+    It's your life that sucks, around the phone.
+"""
+
 import tkinter as tk
 import tkinter.ttk as ttk
 
@@ -84,14 +88,15 @@ class GuiApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-
         def on_connect_to_spotify():
+            callback_url = "http://localhost:5000/callback"
+
             def on_auth_callback(code):
-                code, resp = spotify.api.request_token(code, "http://localhost:5000/callback")
+                code, resp = spotify.api.request_token(code, callback_url)
                 configuration.TOKEN = resp["access_token"]
 
-            httpServer = spotify.callbacks.SocketListener(on_auth_callback, "localhost:5000")
-            url = spotify.api.authorize_user("http://localhost:5000/callback")
+            httpServer = spotify.callbacks.SocketListener(on_auth_callback, callback_url)
+            url = spotify.api.authorize_user(callback_url)
 
             httpServer.start()
             webbrowser.open(url)
@@ -162,7 +167,7 @@ class GuiApp(tk.Tk):
         self.ax.title.set_text("{} sec".format(datetime.now()))
 
     def periodic_update(self):
-        """ TODO: Should refactor by making request asynchronous to unblock gui thread.
+        """ 
         """
         if hasattr(configuration, "TOKEN"):
             info = get_playback_info(configuration.TOKEN)
