@@ -63,6 +63,7 @@ class ProcessorThread(threading.Thread):
     def __init__(self, *args, **kwargs):
         super(ProcessorThread, self).__init__(*args, **kwargs)
         self._stop_event = threading.Event()
+        self.lock = threading.Lock()
 
     def stop(self):
         self._stop_event.set()
@@ -74,7 +75,9 @@ class ProcessorThread(threading.Thread):
         global DATA_X
         while not self.stopped():
             try:
-                DATA_X = [random.random() for i in range(100)]
+                with self.lock:
+                    DATA_X = [random.random() for i in range(100)]
+
                 time.sleep(0.1)
 
             except Exception as e:
@@ -85,11 +88,17 @@ class ProcessorThread(threading.Thread):
 class GuiApp(tk.Tk):
     """
     """
+
+    PERIODIC_UPDATE_INTERVAL = 1000
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         def on_connect_to_spotify():
             callback_url = "http://localhost:5000/callback"
+
+            # Disable connect button. Should re-enable if connection failed.
+            self.connect_to_spotify.configure(state='disabled')
 
             def on_auth_callback(code):
                 code, resp = spotify.api.request_token(code, callback_url)
@@ -117,18 +126,7 @@ class GuiApp(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", on_app_close)
         self.title("Spotify EEG Data Collection")
 
-        self.control_frame = tk.Frame(self)
-        self.control_frame.pack()
-
-        self.like = tk.Button(self.control_frame, text="Like", bg="green")
-        self.like.pack(side=tk.LEFT)
-
-        self.meh = tk.Button(self.control_frame, text="Meh", bg="grey")
-        self.meh.pack(side=tk.LEFT)
-
-        self.dislike = tk.Button(self.control_frame, text="Dislike", bg="red")
-        self.dislike.pack(side=tk.LEFT)
-
+        # App Frame
         self.app_frame = tk.Frame(self)
         self.app_frame.pack()
 
@@ -141,12 +139,28 @@ class GuiApp(tk.Tk):
         self.connect_to_spotify = tk.Button(self.app_frame, text="Connect Spotify", command=on_connect_to_spotify)
         self.connect_to_spotify.pack(side=tk.LEFT)
 
+        # Control Frame
+        self.control_frame = tk.Frame(self)
+        self.control_frame.pack()
+
+        self.like = tk.Button(self.control_frame, text="Like")
+        self.like.pack(side=tk.LEFT)
+
+        self.meh = tk.Button(self.control_frame, text="Meh")
+        self.meh.pack(side=tk.LEFT)
+
+        self.dislike = tk.Button(self.control_frame, text="Dislike")
+        self.dislike.pack(side=tk.LEFT)
+
+        # Text Area
         self.response_field = widgets.TextArea(self, height=10)
         self.response_field.pack()
 
+        # Progress bar
         self.song_progress = ttk.Progressbar(self, orient=tk.HORIZONTAL, length=500, mode="determinate")
         self.song_progress.pack()
 
+        # Signal graph
         self.figure = pyplot.Figure()
         self.ax = self.figure.add_subplot(111)
 
@@ -154,22 +168,30 @@ class GuiApp(tk.Tk):
         self.canvas.get_tk_widget().pack()
         self.ani = animation.FuncAnimation(self.figure, self.draw, interval=100)
 
-        self.after(1000, self.periodic_update)
+        self.status_frame = tk.Frame(self)
+        self.status_frame.pack()
 
+        self.spotify_connection_state = tk.Label(self.status_frame, text="Disconnected")
+        self.spotify_connection_state.pack()
+
+        # Processing setup
+        self.after(self.PERIODIC_UPDATE_INTERVAL, self.periodic_update)
         self.processor = ProcessorThread()
-        self.processor.start()
+        #self.processor.start()
 
     def draw(self, event):
         global DATA_Y
         global DATA_X
         self.ax.clear()
-        self.ax.plot(DATA_Y, DATA_X)
+        with self.processor.lock:
+            self.ax.plot(DATA_Y, DATA_X)
         self.ax.title.set_text("{} sec".format(datetime.now()))
 
     def periodic_update(self):
         """ 
         """
         if hasattr(configuration, "TOKEN"):
+            self.spotify_connection_state.configure(text=f"Connected: {configuration.TOKEN[:10]}...")
             info = get_playback_info(configuration.TOKEN)
 
             text = "\n".join([f"{key: <10} = {value: <20}" for key, value in info.items()])
@@ -178,7 +200,7 @@ class GuiApp(tk.Tk):
             progress = (info["progress"] / info["duration"]) * 100
             self.song_progress["value"] = progress
 
-        self.after(1000, self.periodic_update)
+        self.after(self.PERIODIC_UPDATE_INTERVAL, self.periodic_update)
 
 
 if __name__ == '__main__':
