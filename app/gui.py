@@ -1,7 +1,5 @@
 import tkinter as tk
 import tkinter.ttk as ttk
-import flask
-import socket
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -17,12 +15,9 @@ from datetime import datetime
 import threading
 import time
 import webbrowser
-import pprint
 
 import configuration
-
 import widgets
-
 import spotify.api
 import spotify.callbacks
 
@@ -117,7 +112,6 @@ class GuiApp(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", on_app_close)
         self.title("Spotify EEG Data Collection")
 
-        # Buttons setup
         self.control_frame = tk.Frame(self)
         self.control_frame.pack()
 
@@ -148,7 +142,6 @@ class GuiApp(tk.Tk):
         self.song_progress = ttk.Progressbar(self, orient=tk.HORIZONTAL, length=500, mode="determinate")
         self.song_progress.pack()
 
-        # Signal plot canvas setup
         self.figure = pyplot.Figure()
         self.ax = self.figure.add_subplot(111)
 
