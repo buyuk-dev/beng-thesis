@@ -18,7 +18,6 @@ info = inlet.info()
 description = info.desc()
 
 sampling = int(info.nominal_srate())
-
 print(info.as_xml())
 
 

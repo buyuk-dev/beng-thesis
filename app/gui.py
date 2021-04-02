@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter.ttk as ttk
 import flask
 import socket
 
@@ -19,14 +20,47 @@ import webbrowser
 import pprint
 
 import configuration
-import spotify
+
+import widgets
+
+import spotify.api
+import spotify.callbacks
+
 
 DATA_X = [0] * 100
 DATA_Y = list(range(100))
 
 
-class ProcessorThread(threading.Thread):
+def filter_playback_info(playback_info):
+    """ Extract only the required info from Spotify API response.
+    """
+    return {
+        "artists":      playback_info["item"]["artists"][0]["name"],
+        "song":         playback_info["item"]["name"],
+        "popularity":   playback_info["item"]["popularity"],
+        "album":        playback_info["item"]["album"]["name"],
+        "released":     playback_info["item"]["album"]["release_date"],
+        "duration":     playback_info["item"]["duration_ms"] // 1000,
+        "progress":     playback_info["progress_ms"] // 1000
+    }
 
+
+def get_playback_info(token):
+    """ Request current playback from Spotify API.
+    """
+    assert token is not None, "Access token not available."
+
+    code, playback_info = spotify.api.get_current_playback_info(token)
+
+    assert code == 200, f"Error getting current playback: {code}."
+    assert playback_info is not None, "Looks like nothing is playing at the moment."
+
+    return filter_playback_info(playback_info)
+
+
+class ProcessorThread(threading.Thread):
+    """
+    """
     def __init__(self, *args, **kwargs):
         super(ProcessorThread, self).__init__(*args, **kwargs)
         self._stop_event = threading.Event()
@@ -49,109 +83,21 @@ class ProcessorThread(threading.Thread):
                 break
 
 
-class SpotifyCallbackThread(threading.Thread):
-
-    def __init__(self, *args, **kwargs):
-        super(SpotifyCallbackThread, self).__init__(*args, **kwargs)
-        self._stop_event = threading.Event()
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    def stop(self):
-        self.s.close()
-        self._stop_event.set()
-
-    def stopped(self):
-        return self._stop_event.is_set()
-
-    def run(self):
-        """ Listen for callback from spotify with auth code.
-            After it arrives parse and request access token.
-        """
-        self.s.bind(("localhost", 5000))
-        self.s.listen(1)
-
-        client, address = self.s.accept()
-
-        request = client.recv(512).decode()
-        client.close()
-
-        idx = request.find("HTTP")
-        request = request[:idx]
-        code_idx = request.find("code=")
-
-        code = request[code_idx:].split("=")[-1].strip()
-        code, resp = spotify.request_token(code, "http://localhost:5000/callback")
-
-        configuration.TOKEN = resp["access_token"]
-
-
-class ServerThread(threading.Thread):
-
-    def __init__(self, *args, **kwargs):
-        super(ServerThread, self).__init__(*args, **kwargs)
-        self._stop_event = threading.Event()
-
-    def stop(self):
-        self._stop_event.set()
-        exit()
-
-    def stopped(self):
-        return self._stop_event.is_set()
-
-    def run(self):
-
-        self.server = flask.Flask("EegHttpServer")
-        self.server.debug = False
-
-        @self.server.route("/callback")
-        def authorization_callback():
-            """ if authorization request had 'state' argument
-                authorization_callback will also have the same argument.
-            """
-            code = flask.request.args.get("code")
-            code, resp = spotify.request_token(code, "http://localhost:5000/callback")
-            configuration.TOKEN = resp["access_token"]
-
-        self.server.run()
-
-
-class TextArea(tk.Text):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-    def set_text(self, text): 
-        self.delete(1.0, tk.END)
-        self.insert(tk.INSERT, text)
-
-
 class GuiApp(tk.Tk):
-
+    """
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        def on_like():
-            if configuration.TOKEN is None: 
-                print("Access token not available.")
-                return
 
-            code, playback_info = spotify.get_current_playback_info(configuration.TOKEN)
-            filtered = {}
-            filtered["artistis"] = playback_info["item"]["artists"][0]["name"]
-            filtered["song"] = playback_info["item"]["name"]
-            filtered["popularity"] = playback_info["item"]["popularity"]
-            filtered["album"] = playback_info["item"]["album"]["name"]
-            filtered["released"] = playback_info["item"]["album"]["release_date"]
-           
-            text = pprint.pformat(filtered, indent=4)
-            self.response_field.set_text(text)
+        def on_connect_to_spotify():
+            def on_auth_callback(code):
+                code, resp = spotify.api.request_token(code, "http://localhost:5000/callback")
+                configuration.TOKEN = resp["access_token"]
 
-        def on_neutral():
-            pass
+            httpServer = spotify.callbacks.SocketListener(on_auth_callback, "localhost:5000")
+            url = spotify.api.authorize_user("http://localhost:5000/callback")
 
-        def on_dislike():
-            httpServer = SpotifyCallbackThread()
-            url = spotify.authorize_user("http://localhost:5000/callback")
             httpServer.start()
             webbrowser.open(url)
             httpServer.join()
@@ -169,29 +115,38 @@ class GuiApp(tk.Tk):
             self.destroy()
 
         self.protocol("WM_DELETE_WINDOW", on_app_close)
-        self.title("EEG Music Preferences Data Collection Interface")
+        self.title("Spotify EEG Data Collection")
 
         # Buttons setup
         self.control_frame = tk.Frame(self)
         self.control_frame.pack()
 
-        self.like = tk.Button(self.control_frame, text="Like", bg="green", command=on_like)
+        self.like = tk.Button(self.control_frame, text="Like", bg="green")
         self.like.pack(side=tk.LEFT)
 
-        self.meh = tk.Button(self.control_frame, text="Meh", bg="grey", command=on_neutral)
+        self.meh = tk.Button(self.control_frame, text="Meh", bg="grey")
         self.meh.pack(side=tk.LEFT)
 
-        self.dislike = tk.Button(self.control_frame, text="Dislike", bg="red", command=on_dislike)
+        self.dislike = tk.Button(self.control_frame, text="Dislike", bg="red")
         self.dislike.pack(side=tk.LEFT)
 
-        self.start_recording = tk.Button(self.control_frame, text="Record", command=on_start_recording)
+        self.app_frame = tk.Frame(self)
+        self.app_frame.pack()
+
+        self.start_recording = tk.Button(self.app_frame, text="Record", command=on_start_recording)
         self.start_recording.pack(side=tk.LEFT)
 
-        self.stop_recording = tk.Button(self.control_frame, text="Stop recording", command=on_stop_recording, state='disabled')
+        self.stop_recording = tk.Button(self.app_frame, text="Stop recording", command=on_stop_recording, state='disabled')
         self.stop_recording.pack(side=tk.LEFT)
 
-        self.response_field = TextArea(self)
+        self.connect_to_spotify = tk.Button(self.app_frame, text="Connect Spotify", command=on_connect_to_spotify)
+        self.connect_to_spotify.pack(side=tk.LEFT)
+
+        self.response_field = widgets.TextArea(self, height=10)
         self.response_field.pack()
+
+        self.song_progress = ttk.Progressbar(self, orient=tk.HORIZONTAL, length=500, mode="determinate")
+        self.song_progress.pack()
 
         # Signal plot canvas setup
         self.figure = pyplot.Figure()
@@ -214,7 +169,17 @@ class GuiApp(tk.Tk):
         self.ax.title.set_text("{} sec".format(datetime.now()))
 
     def periodic_update(self):
-        print("periodic update...")
+        """ TODO: Should refactor by making request asynchronous to unblock gui thread.
+        """
+        if hasattr(configuration, "TOKEN"):
+            info = get_playback_info(configuration.TOKEN)
+
+            text = "\n".join([f"{key: <10} = {value: <20}" for key, value in info.items()])
+            self.response_field.set_text(text)
+
+            progress = (info["progress"] / info["duration"]) * 100
+            self.song_progress["value"] = progress
+
         self.after(1000, self.periodic_update)
 
 
