@@ -40,6 +40,7 @@ def filter_playback_info(playback_info):
     return {
         "artists":      playback_info["item"]["artists"][0]["name"],
         "song":         playback_info["item"]["name"],
+        "id":           playback_info["item"]["id"],
         "popularity":   playback_info["item"]["popularity"],
         "album":        playback_info["item"]["album"]["name"],
         "released":     playback_info["item"]["album"]["release_date"],
@@ -59,6 +60,7 @@ def filter_playlists(response):
             "ntracks": item["tracks"]["total"]
         }
         for item in items
+        if item["name"].startswith("EEG-")
     ]
 
 
@@ -148,6 +150,7 @@ class GuiApp(tk.Tk):
     """
 
     PERIODIC_UPDATE_INTERVAL = 1000
+    GRAPH_ANIMATION_INTERVAL = 1000
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -213,7 +216,7 @@ class GuiApp(tk.Tk):
 
         self.canvas = FigureCanvasTkAgg(self.figure, master=self)
         self.canvas.get_tk_widget().pack()
-        self.ani = animation.FuncAnimation(self.figure, self.draw, interval=100)
+        self.ani = animation.FuncAnimation(self.figure, self.draw, interval=self.GRAPH_ANIMATION_INTERVAL)
 
         self.status_frame = tk.Frame(self)
         self.status_frame.pack()
