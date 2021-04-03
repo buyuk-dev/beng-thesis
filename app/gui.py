@@ -16,18 +16,22 @@ import math
 import random
 from datetime import datetime
 
+import logging
+logging.basicConfig(format='%(asctime)s %(threadName)s %(levelname)s %(message)s')
+logger = logging.getLogger("main")
+logger.setLevel(logging.DEBUG)
+
+
+import asyncio
 import threading
 import time
 import webbrowser
+from pprint import pprint
 
 import configuration
 import widgets
 import spotify.api
 import spotify.callbacks
-
-
-DATA_X = [0] * 100
-DATA_Y = list(range(100))
 
 
 def filter_playback_info(playback_info):
@@ -44,15 +48,36 @@ def filter_playback_info(playback_info):
     }
 
 
+def filter_playlists(response):
+    """ Extract only required fields from user playlists Spotify API response.
+    """
+    items = response["items"]
+    return [
+        {
+            "name": item["name"],
+            "id": item["id"],
+            "ntracks": item["tracks"]["total"]
+        }
+        for item in items
+    ]
+
+
 def get_playback_info(token):
     """ Request current playback from Spotify API.
     """
-    assert token is not None, "Access token not available."
+    if token is None:
+        logger.error("Spotify API access token unavailable.")
+        return
 
     code, playback_info = spotify.api.get_current_playback_info(token)
 
-    assert code == 200, f"Error getting current playback: {code}."
-    assert playback_info is not None, "Looks like nothing is playing at the moment."
+    if code == 204:
+        logger.warning("Looks like nothing is playing at the moment.")
+        return
+
+    if code != 200:
+        logger.error(f"Error getting current playback: HTTP {code}.")
+        return
 
     return filter_playback_info(playback_info)
 
@@ -63,7 +88,7 @@ class ProcessorThread(threading.Thread):
     def __init__(self, *args, **kwargs):
         super(ProcessorThread, self).__init__(*args, **kwargs)
         self._stop_event = threading.Event()
-        self.lock = threading.Lock()
+        self.data = [list(range(100)), [0] * 100]
 
     def stop(self):
         self._stop_event.set()
@@ -72,17 +97,50 @@ class ProcessorThread(threading.Thread):
         return self._stop_event.is_set()
 
     def run(self):
-        global DATA_X
+        logger.info("Starting processor thread.")
         while not self.stopped():
             try:
-                with self.lock:
-                    DATA_X = [random.random() for i in range(100)]
-
+                self.data[1] = [random.random() for i in range(100)]
                 time.sleep(0.1)
-
             except Exception as e:
-                print(e)
+                logger.error(str(e))
                 break
+
+
+def spotify_connector_thread():
+    """ Spotify connector process.
+    """
+    callback_url = configuration.SPOTIFY_CALLBACK_URL
+    logger.info(f"Spotify connector at {callback_url}.")
+
+    def on_auth_callback(code):
+        logger.info("Spotify connection authorized.")
+
+        code, resp = spotify.api.request_token(code, callback_url)
+        if (code != 200):
+            logger.error(f"Spotify token request failed with HTTP {code}.")
+            return
+
+        logger.info("Spotify OAuth token received.")
+        configuration.TOKEN = resp["access_token"]
+
+        code, resp = spotify.api.get_user_profile(configuration.TOKEN)
+        if code != 200:
+            logger.error(f"Error getting user id: HTTP {code}.")
+            return
+
+        configuration.USER_ID = resp["id"]
+        logger.info(f"Current Spotify user is {configuration.USER_ID}")
+
+        code, resp = spotify.api.get_user_playlists(configuration.TOKEN, configuration.USER_ID)
+        playlists = filter_playlists(resp)
+        pprint(playlists)
+
+    httpServer = spotify.callbacks.SocketListener(on_auth_callback, callback_url)
+    url = spotify.api.authorize_user(callback_url)
+
+    httpServer.start()
+    webbrowser.open(url)
 
 
 class GuiApp(tk.Tk):
@@ -95,21 +153,10 @@ class GuiApp(tk.Tk):
         super().__init__(*args, **kwargs)
 
         def on_connect_to_spotify():
-            callback_url = "http://localhost:5000/callback"
-
-            # Disable connect button. Should re-enable if connection failed.
+            logger.info("Connecting to spotify.")
+            connector = threading.Thread(target=spotify_connector_thread)
             self.connect_to_spotify.configure(state='disabled')
-
-            def on_auth_callback(code):
-                code, resp = spotify.api.request_token(code, callback_url)
-                configuration.TOKEN = resp["access_token"]
-
-            httpServer = spotify.callbacks.SocketListener(on_auth_callback, callback_url)
-            url = spotify.api.authorize_user(callback_url)
-
-            httpServer.start()
-            webbrowser.open(url)
-            httpServer.join()
+            connector.start()
 
         def on_start_recording():
             self.start_recording.configure(state='disabled')
@@ -157,7 +204,7 @@ class GuiApp(tk.Tk):
         self.response_field.pack()
 
         # Progress bar
-        self.song_progress = ttk.Progressbar(self, orient=tk.HORIZONTAL, length=500, mode="determinate")
+        self.song_progress = ttk.Progressbar(self, orient=tk.HORIZONTAL, mode="determinate")
         self.song_progress.pack()
 
         # Signal graph
@@ -177,14 +224,12 @@ class GuiApp(tk.Tk):
         # Processing setup
         self.after(self.PERIODIC_UPDATE_INTERVAL, self.periodic_update)
         self.processor = ProcessorThread()
-        #self.processor.start()
+        self.processor.start()
+        logger.info("Starting processor thread.")
 
     def draw(self, event):
-        global DATA_Y
-        global DATA_X
         self.ax.clear()
-        with self.processor.lock:
-            self.ax.plot(DATA_Y, DATA_X)
+        self.ax.plot(self.processor.data[0], self.processor.data[1])
         self.ax.title.set_text("{} sec".format(datetime.now()))
 
     def periodic_update(self):
@@ -194,11 +239,15 @@ class GuiApp(tk.Tk):
             self.spotify_connection_state.configure(text=f"Connected: {configuration.TOKEN[:10]}...")
             info = get_playback_info(configuration.TOKEN)
 
-            text = "\n".join([f"{key: <10} = {value: <20}" for key, value in info.items()])
-            self.response_field.set_text(text)
+            if info is not None:
+                text = "\n".join([f"{key: <10} = {value: <20}" for key, value in info.items()])
+                self.response_field.set_text(text)
 
-            progress = (info["progress"] / info["duration"]) * 100
-            self.song_progress["value"] = progress
+                progress = (info["progress"] / info["duration"]) * 100
+                self.song_progress["value"] = progress
+
+        else:
+            self.connect_to_spotify.configure(state='normal')
 
         self.after(self.PERIODIC_UPDATE_INTERVAL, self.periodic_update)
 

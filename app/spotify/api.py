@@ -1,6 +1,7 @@
 import requests
 import configuration as config
 import urllib
+import aiohttp
 
 
 def authorize_user(redirect_uri):
@@ -31,14 +32,46 @@ def request_token(code, redirect_uri):
     resp = requests.post("https://accounts.spotify.com/api/token", data=params)
     return resp.status_code, resp.json()
 
+
 def get_current_playback_info(token):
     """ Returns current playback info.
     """
     headers = {
         "Authorization": f"Bearer {token}"
     }
+
     r = requests.get("https://api.spotify.com/v1/me/player", headers=headers)
     code =  r.status_code
+
+    if code == 200:
+        return code, r.json()
+    else:
+        return code, r.text
+
+
+def get_user_profile(token):
+    """ Returns current user id.
+    """
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    r = requests.get("https://api.spotify.com/v1/me", headers=headers)
+    code = r.status_code
+
+    if code == 200:
+        return code, r.json()
+    else:
+        return code, r.text
+
+
+def get_user_playlists(token, user_id):
+    """ Returns authorization method.
+    """
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    r = requests.get(f"https://api.spotify.com/v1/users/{user_id}/playlists", headers=headers)
+    code = r.status_code
 
     if code == 200:
         return code, r.json()
