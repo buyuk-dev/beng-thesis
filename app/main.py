@@ -3,6 +3,9 @@ from pylsl import StreamInlet, resolve_byprop
 import threading
 import pprint
 
+import matplotlib.pyplot as pyplot
+from matplotlib.animation import FuncAnimation
+
 MAC_ADDRESS = "00:55:DA:B5:7E:45"
 
 
@@ -33,12 +36,33 @@ eeg_time_correction = inlet.time_correction()
 info = inlet.info()
 description = info.desc()
 
+
+data = []
+
+
+fig = pyplot.figure()
+ax = fig.add_subplot(111)
+
+
+def draw(event):
+    global data
+    global ax
+    ax.clear()
+    ax.plot(data[-200:])
+    data = data[-400:]
+
+
+ani = FuncAnimation(fig, draw, interval=100)
+
+print("shwoing plot")
+#pyplot.show()
+
+chunk, timestamps = inlet.pull_chunk(timeout=1.0)
+data = list(chunk)
+
 while True:
-
-    sample, timestamp = inlet.pull_sample()
-    pprint.pprint(timestamp)
-    pprint.pprint(sample)
-
+    new_data, timestamps = inlet.pull_chunk()
+    data.extend(new_data)
 
 
 
