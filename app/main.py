@@ -16,6 +16,14 @@ class MuseEegStream:
         self.muse_address = muse_address
         self.data_lock = threading.Lock()
 
+    def _parse_channel_names(self):
+        ch = self.inlet.info().desc().child("channels").child("channel")
+        self.channel_names = []
+         
+        for k in range(self.nchannels):
+            self.channel_names.append(ch.child_value("label"))
+            ch = ch.next_sibling()
+
     def connect(self):
         """ Setup Muse LSL connection.
         """
@@ -40,10 +48,11 @@ class MuseEegStream:
         self.sampling = int(self.inlet.info().nominal_srate())
         self.nchannels = self.inlet.info().channel_count()
 
+        self._parse_channel_names()
+        print(self.channel_names)
+
         print(f"Stream sampling rate {self.sampling},") 
         print(f"Stream number of channels {self.nchannels}.")
-
-        print(self.inlet.info().as_xml())
 
         self.window_size = self.sampling * 3
         self.data = [tuple([0] * self.nchannels)] * self.window_size
@@ -65,15 +74,20 @@ class MuseEegStream:
 
 class SignalPlotter:
 
-    def __init__(self, nchannels, data_source):
-        self.nchannels = nchannels
+    def __init__(self, channels, data_source):
+        self.channel_names = channels
+        self.nchannels = len(channels)
         self.data_source = data_source
 
         self.fig = pyplot.figure()
-        self.axs = [
-            self.fig.add_subplot(self.nchannels, 1, i + 1)
-            for i in range(nchannels)
-        ]
+        self.axs = []
+
+        for i in range(self.nchannels):
+            title = self.channel_names[i]
+            print(f"Adding subplot for {title}")
+            ax = self.fig.add_subplot(self.nchannels, 1, i + 1)
+            ax.set_title(title)
+            self.axs.append(ax)
 
     def clear(self):
         for ax in self.axs:
@@ -93,6 +107,9 @@ class SignalPlotter:
             for i in range(self.nchannels)
         ]
 
+        for n, ax in enumerate(self.axs):
+            ax.set_title(self.channel_names[n])
+
         for ax, channel in zip(self.axs, data_channels):
             ax.plot(channel)
 
@@ -111,5 +128,5 @@ if __name__ == '__main__':
         with muse_stream.data_lock:
             return muse_stream.data.copy()
 
-    plotter = SignalPlotter(muse_stream.nchannels, data_source)
+    plotter = SignalPlotter(muse_stream.channel_names, data_source)
     plotter.show()    
