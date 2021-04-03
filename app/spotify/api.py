@@ -11,7 +11,10 @@ def authorize_user(redirect_uri):
         "client_id": config.CLIENT_ID,
         "response_type": "code",
         "redirect_uri": redirect_uri,
-        "scope": "user-read-currently-playing user-read-playback-state"
+        "scope": " ".join([
+            "user-read-currently-playing",
+            "user-read-playback-state",
+            "playlist-modify-public"])
     }
     endpoint = "https://accounts.spotify.com/authorize"
     query = urllib.parse.urlencode(params)
@@ -79,20 +82,19 @@ def get_user_playlists(token, user_id):
         return code, r.text
 
 
-def add_item_to_liked_songs(item):
-    """ Adds item to the liked items playlist.
+def add_item_to_playlist(token, playlist_id, track_uri):
     """
-    pass
-
-
-def add_item_to_disliked_songs(item):
-    """ Adds item to the disliked items playlist.
     """
-    pass
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
 
+    url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks?uris={track_uri},"
+    r = requests.post(url, headers=headers)
 
-def add_item_to_meh_songst(item):
-    """ Adds item to the meh items playlist.
-    """
-    pass
-
+    code = r.status_code
+    if code == 201:
+        return code, r.json()
+    else:
+        return code, r.text
+   

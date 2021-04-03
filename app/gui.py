@@ -40,7 +40,7 @@ def filter_playback_info(playback_info):
     return {
         "artists":      playback_info["item"]["artists"][0]["name"],
         "song":         playback_info["item"]["name"],
-        "id":           playback_info["item"]["id"],
+        "uri":           playback_info["item"]["uri"],
         "popularity":   playback_info["item"]["popularity"],
         "album":        playback_info["item"]["album"]["name"],
         "released":     playback_info["item"]["album"]["release_date"],
@@ -53,15 +53,14 @@ def filter_playlists(response):
     """ Extract only required fields from user playlists Spotify API response.
     """
     items = response["items"]
-    return [
-        {
-            "name": item["name"],
+    return {
+        item["name"]: {
             "id": item["id"],
             "ntracks": item["tracks"]["total"]
         }
         for item in items
         if item["name"].startswith("EEG-")
-    ]
+    }
 
 
 def get_playback_info(token):
@@ -135,8 +134,7 @@ def spotify_connector_thread():
         logger.info(f"Current Spotify user is {configuration.USER_ID}")
 
         code, resp = spotify.api.get_user_playlists(configuration.TOKEN, configuration.USER_ID)
-        playlists = filter_playlists(resp)
-        pprint(playlists)
+        configuration.PLAYLISTS = filter_playlists(resp)
 
     httpServer = spotify.callbacks.SocketListener(on_auth_callback, callback_url)
     url = spotify.api.authorize_user(callback_url)
@@ -173,6 +171,30 @@ class GuiApp(tk.Tk):
             self.processor.stop()
             self.destroy()
 
+        def on_like():
+            logger.info("User likes current song.")
+            code, resp = spotify.api.add_item_to_playlist(
+                configuration.TOKEN,
+                configuration.PLAYLISTS["EEG-Liked"]["id"],
+                self.playback_info["uri"]
+            )
+
+        def on_dislike(): 
+            logger.info("User dislikes current song.")
+            code, resp = spotify.api.add_item_to_playlist(
+                configuration.TOKEN,
+                configuration.PLAYLISTS["EEG-Disliked"]["id"],
+                self.playback_info["uri"]
+            )
+
+        def on_meh():
+            logger.info("User has no opinion about current song.")
+            code, resp = spotify.api.add_item_to_playlist(
+                configuration.TOKEN,
+                configuration.PLAYLISTS["EEG-Meh"]["id"],
+                self.playback_info["uri"]
+            )
+
         self.protocol("WM_DELETE_WINDOW", on_app_close)
         self.title("Spotify EEG Data Collection")
 
@@ -193,13 +215,13 @@ class GuiApp(tk.Tk):
         self.control_frame = tk.Frame(self)
         self.control_frame.pack()
 
-        self.like = tk.Button(self.control_frame, text="Like")
+        self.like = tk.Button(self.control_frame, text="Like", command=on_like)
         self.like.pack(side=tk.LEFT)
 
-        self.meh = tk.Button(self.control_frame, text="Meh")
+        self.meh = tk.Button(self.control_frame, text="Meh", command=on_meh)
         self.meh.pack(side=tk.LEFT)
 
-        self.dislike = tk.Button(self.control_frame, text="Dislike")
+        self.dislike = tk.Button(self.control_frame, text="Dislike", command=on_dislike)
         self.dislike.pack(side=tk.LEFT)
 
         # Text Area
@@ -240,13 +262,13 @@ class GuiApp(tk.Tk):
         """
         if hasattr(configuration, "TOKEN"):
             self.spotify_connection_state.configure(text=f"Connected: {configuration.TOKEN[:10]}...")
-            info = get_playback_info(configuration.TOKEN)
+            self.playback_info = get_playback_info(configuration.TOKEN)
 
-            if info is not None:
-                text = "\n".join([f"{key: <10} = {value: <20}" for key, value in info.items()])
+            if self.playback_info is not None:
+                text = "\n".join([f"{key: <10} = {value: <20}" for key, value in self.playback_info.items()])
                 self.response_field.set_text(text)
 
-                progress = (info["progress"] / info["duration"]) * 100
+                progress = (self.playback_info["progress"] / self.playback_info["duration"]) * 100
                 self.song_progress["value"] = progress
 
         else:
