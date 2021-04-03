@@ -16,7 +16,6 @@ class MuseEegStream:
         self.muse_address = muse_address
         self.data_lock = threading.Lock()
 
-
     def connect(self):
         """ Setup Muse LSL connection.
         """
@@ -46,7 +45,7 @@ class MuseEegStream:
 
         print(self.inlet.info().as_xml())
 
-        self.window_size = self.sampling * 5
+        self.window_size = self.sampling * 3
         self.data = [tuple([0] * self.nchannels)] * self.window_size
 
     def start(self):
@@ -64,31 +63,53 @@ class MuseEegStream:
         self.collect_thread.start()
 
 
+class SignalPlotter:
+
+    def __init__(self, nchannels, data_source):
+        self.nchannels = nchannels
+        self.data_source = data_source
+
+        self.fig = pyplot.figure()
+        self.axs = [
+            self.fig.add_subplot(self.nchannels, 1, i + 1)
+            for i in range(nchannels)
+        ]
+
+    def clear(self):
+        for ax in self.axs:
+            ax.clear()
+
+    def set_ylim(self, ymin, ymax):
+        [ax.set_ylim([ymin, ymax]) for ax in self.axs]
+
+    def draw(self, event):
+        self.clear()
+        self.set_ylim(-200, 200)
+
+        data = self.data_source()
+ 
+        data_channels = [
+            [d[i] for d in data]
+            for i in range(self.nchannels)
+        ]
+
+        for ax, channel in zip(self.axs, data_channels):
+            ax.plot(channel)
+
+    def show(self):
+        ani = FuncAnimation(self.fig, self.draw, interval=100)
+        pyplot.show() 
+
+
 if __name__ == '__main__':
 
     muse_stream = MuseEegStream()
     muse_stream.connect()
     muse_stream.start()
 
-    fig = pyplot.figure()
-    axs = [fig.add_subplot(muse_stream.nchannels, 1, i+1) for i in range(muse_stream.nchannels)]
-
-    def draw(event):
-        for ax in axs:
-            ax.clear()
-
+    def data_source():
         with muse_stream.data_lock:
-            [ax.set_ylim([-200,200]) for ax in axs]
+            return muse_stream.data.copy()
 
-            data_channel = [
-                [d[i] for d in muse_stream.data]
-                for i in range(muse_stream.nchannels)
-            ]
-
-            for ax, channel in zip(axs, data_channel):
-                ax.plot(channel)
-
-            
-    ani = FuncAnimation(fig, draw, interval=100)
-    pyplot.show()
-
+    plotter = SignalPlotter(muse_stream.nchannels, data_source)
+    plotter.show()    
