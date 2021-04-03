@@ -60,6 +60,10 @@ https://github.com/alexandrebarachant/muse-lsl/blob/master/examples/neurofeedbac
 
 https://hackaday.io/project/162169-muse-eeg-headset-making-extra-electrode
 
+In case bluetooth refuses to turn on after attempted restart:
+
+    sudo rmmod btusb && sudo modprobe btusb && sudo rfkill unblock
+
 
 ### Muse LSL stream info in xml format (StreamInlet info as xml)
 
