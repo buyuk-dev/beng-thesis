@@ -7,6 +7,7 @@ import time
 import matplotlib.pyplot as pyplot
 from matplotlib.animation import FuncAnimation
 
+from logger import logger
 import configuration
 
 

@@ -16,18 +16,13 @@ import math
 import random
 from datetime import datetime
 
-import logging
-logging.basicConfig(format='%(asctime)s %(threadName)s %(levelname)s %(message)s')
-logger = logging.getLogger("main")
-logger.setLevel(logging.DEBUG)
-
-
 import asyncio
 import threading
 import time
 import webbrowser
 from pprint import pprint
 
+from logger import logger
 import configuration
 import widgets
 import spotify.api
