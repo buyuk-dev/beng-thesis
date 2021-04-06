@@ -13,6 +13,34 @@ server = flask.Flask("EegDataCollectionServer")
 server.debug = False
 
 
+def get_playback_info(token):
+    """ Request current playback from Spotify API.
+    """
+    if token is None:
+        logger.error("Spotify API access token unavailable.")
+        return
+
+    code, playback_info = spotify.api.get_current_playback_info(token)
+
+    if code == 204:
+        logger.warning("Looks like nothing is playing at the moment.")
+        return
+
+    if code != 200:
+        logger.error(f"Error getting current playback: HTTP {code}.")
+        return
+
+    return spotify.filters.playback_info(playback_info)
+
+
+@server.route("/spotify/connect")
+def on_spotify_connect():
+    logger.info("Connecting to Spotify...")
+    auth_url = spotify.api.authorize_user(configuration.SPOTIFY_CALLBACK_URL)
+    webbrowser.open(auth_url)
+    return flask.make_response("OK", 200)
+
+
 @server.route("/callback")
 def spotify_auth_callback():
     logger.info("Spotify auth callback has been triggered.")
@@ -52,15 +80,28 @@ def spotify_auth_callback():
 
 @server.route("/mark/<value>")
 def on_mark_song_command(value):
-    logger.info(f"Marking song as {value},")
-    return flask.make_response("OK", 200)
+    logger.info(f"Marking song as {value}.")
+    if value not in configuration.MARK_TO_PLAYLIST_NAME:
+        logger.error(f"Invalid mark value: {value}.")
+        return flask.make_response(f"Invalid mark: {value}.", 400)
 
+    current_playback_info = get_playback_info(configuration.TOKEN)
+    if current_playback_info is None:
+        return flask.make_response(f"Failed to get current playback from Spotify.", 400)
 
-@server.route("/spotify/connect")
-def on_spotify_connect():
-    logger.info("Connecting to Spotify...")
-    auth_url = spotify.api.authorize_user(configuration.SPOTIFY_CALLBACK_URL)
-    webbrowser.open(auth_url)
+    playlist_name = configuration.MARK_TO_PLAYLIST_NAME[value]
+    playlist = configuration.PLAYLISTS[playlist_name]
+
+    logger.debug(f"Adding current track {current_playback_info['song']} to {playlist_name}.")
+    code, resp = spotify.api.add_item_to_playlist(
+        configuration.TOKEN,
+        playlist["id"],
+        current_playback_info["uri"]
+    )
+
+    if code != 200:
+        return flask.make_response(resp, code)
+
     return flask.make_response("OK", 200)
 
 
