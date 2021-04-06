@@ -27,35 +27,7 @@ import configuration
 import widgets
 import spotify.api
 import spotify.callbacks
-
-
-def filter_playback_info(playback_info):
-    """ Extract only the required info from Spotify API response.
-    """
-    return {
-        "artists":      playback_info["item"]["artists"][0]["name"],
-        "song":         playback_info["item"]["name"],
-        "uri":           playback_info["item"]["uri"],
-        "popularity":   playback_info["item"]["popularity"],
-        "album":        playback_info["item"]["album"]["name"],
-        "released":     playback_info["item"]["album"]["release_date"],
-        "duration":     playback_info["item"]["duration_ms"] // 1000,
-        "progress":     playback_info["progress_ms"] // 1000
-    }
-
-
-def filter_playlists(response):
-    """ Extract only required fields from user playlists Spotify API response.
-    """
-    items = response["items"]
-    return {
-        item["name"]: {
-            "id": item["id"],
-            "ntracks": item["tracks"]["total"]
-        }
-        for item in items
-        if item["name"].startswith("EEG-")
-    }
+import spotify.filters
 
 
 def get_playback_info(token):
@@ -75,7 +47,7 @@ def get_playback_info(token):
         logger.error(f"Error getting current playback: HTTP {code}.")
         return
 
-    return filter_playback_info(playback_info)
+    return spotify.filters.playback_info(playback_info)
 
 
 class ProcessorThread(threading.Thread):
@@ -129,7 +101,7 @@ def spotify_connector_thread():
         logger.info(f"Current Spotify user is {configuration.USER_ID}")
 
         code, resp = spotify.api.get_user_playlists(configuration.TOKEN, configuration.USER_ID)
-        configuration.PLAYLISTS = filter_playlists(resp)
+        configuration.PLAYLISTS = spotify.filters.playlists(resp)
 
     httpServer = spotify.callbacks.SocketListener(on_auth_callback, callback_url)
     url = spotify.api.authorize_user(callback_url)
