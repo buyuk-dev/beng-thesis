@@ -1,5 +1,6 @@
 import flask
 import threading
+import multiprocessing
 import time
 import webbrowser
 
@@ -7,13 +8,18 @@ from logger import logger
 import configuration
 import spotify.api
 import spotify.filters
+import muse
+import utils
 
 
 server = flask.Flask("EegDataCollectionServer")
 server.debug = False
 
+stream = None
+collector = None
 
-def get_playback_info(token):
+
+def get_current_playback_info(token):
     """ Request current playback from Spotify API.
     """
     if token is None:
@@ -85,7 +91,7 @@ def on_mark_song_command(value):
         logger.error(f"Invalid mark value: {value}.")
         return flask.make_response(f"Invalid mark: {value}.", 400)
 
-    current_playback_info = get_playback_info(configuration.TOKEN)
+    current_playback_info = get_current_playback_info(configuration.TOKEN)
     if current_playback_info is None:
         return flask.make_response(f"Failed to get current playback from Spotify.", 400)
 
@@ -107,35 +113,68 @@ def on_mark_song_command(value):
 
 @server.route("/muse/connect/<address>")
 def on_muse_connect(address):
-    logger.info(f"Attempting connection to Muse 2 device at {address}...")
+    global stream
+    global collector
+
+    logger.info(f"Attempting connection to Muse 2 device at {address}.")
+
+    if stream is None:
+        stream = muse.Stream(configuration.MUSE_MAC_ADDRESS)
+
+    stream.start()
+
+    if collector is None:
+        collector = muse.DataCollector(stream, 5)
+
     return flask.make_response("OK", 200)
 
 
-class StoppableThread(threading.Thread):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._stop_event = threading.Event()
-
-    def stop(self):
-        self._stop_event.set()
-
-    def stopped(self):
-        return self._stop_event.is_set()
+@server.route("/muse/start")
+def on_muse_start_stream():
+    global collector
+    logger.info(f"Starting data stream.")
+    collector.start()
+    return flask.make_response("OK", 200)
 
 
-class ServerThread(StoppableThread):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+@server.route("/muse/stop")
+def on_muse_stop_stream():
+    global collector
+    logger.info("Stopping data collection.")
+    collector.stop()
+    return flask.make_response("OK", 200)
 
-    def run(self):
-        while not self.stopped():
-            logger.info("ServerThread main loop is running...")
-            time.sleep(1)
+
+@server.route("/muse/disconnect")
+def on_muse_disconnect():
+    global stream
+    logger.info(f"Disconnecting muse device.")
+    stream.stop()
+    return flask.make_response("OK", 200)
+
+
+@server.route("/muse/plot")
+def on_muse_plot():
+    """ This probably doesnt make much sense... """
+    global stream
+    global collector
+    logger.info(f"Plotting muse data.")
+
+    if collector is None:
+        return flask.make_response("Data collector is not set.", 400)
+
+    def data_source():
+        global collector
+        with collector.lock:
+            return collector.data.copy()
+
+    plotter = muse.SignalPlotter(stream.channels, data_source)
+    plotter.show()
+
+    return flask.make_response("OK", 200)
 
 
 if __name__ == "__main__":
-    server_thread = ServerThread()
-    server_thread.start()
     server.run()
 
 
