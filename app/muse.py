@@ -1,81 +1,84 @@
-from muselsl import stream, list_muses
-from pylsl import StreamInlet, resolve_byprop
+import muselsl
+import pylsl
 import threading
-import pprint
 import time
+import multiprocessing
 
 import matplotlib.pyplot as pyplot
 from matplotlib.animation import FuncAnimation
 
 from logger import logger
 import configuration
+import utils
 
 
-class MuseEegStream:
+class Stream:
+    """ Wrapper to the muselsl.Stream class that enables stream termination.
+    """
+    def __init__(self, muse_mac_address):
+        """ """
+        self.muse_mac_address = muse_mac_address
+        
+    def start(self, stream_timeout=5, max_chunklen=30):
+        """ """
+        logger.info("Start lsl stream.")
 
-    def __init__(self, muse_address=configuration.MAC_ADDRESS):
-        self.muse_address = muse_address
-        self.data_lock = threading.Lock()
+        def stream_process(address):
+            muselsl.stream(address)
 
-    def _parse_channel_names(self):
-        ch = self.inlet.info().desc().child("channels").child("channel")
-        self.channel_names = []
-         
-        for k in range(self.nchannels):
-            self.channel_names.append(ch.child_value("label"))
-            ch = ch.next_sibling()
+        self.process = multiprocessing.Process(
+            target=stream_process,
+            args=(self.muse_mac_address,)
+        )
+        self.process.start()
 
-    def connect(self):
-        """ Setup Muse LSL connection.
-        """
-        def stream_thread():
-            stream(self.muse_address, ppg_enabled=True, acc_enabled=True, gyro_enabled=True)
-
-        self.stream_thread = threading.Thread(target=stream_thread)
-        self.stream_thread.start()
-        time.sleep(5.0)
-        print("LSL stream started.")
-
-        self.streams = resolve_byprop('type', 'EEG', timeout=2)
+        self.streams = pylsl.resolve_byprop('type', 'EEG', timeout=2)
         if len(self.streams) == 0:
-            raise RuntimeError('Failed to start EEG stream.')
+            logger.error("Failed to start EEG stream.")
+            return False
 
-        print("Streams resolved.")
+        self.inlet = pylsl.StreamInlet(self.streams[0], max_chunklen=max_chunklen)
+        self.sampling_rate = int(self.inlet.info().nominal_srate())
+        self.channels_count = self.inlet.info().channel_count()
+        channel_xml = self.inlet.info().desc().child("channels").child("channel")
 
-        self.inlet = StreamInlet(self.streams[0], max_chunklen=30)
+        self.channels = []
+        for k in range(self.channels_count):
+            self.channels.append(channel_xml.child_value("label"))
+            channel_xml = channel_xml.next_sibling()
 
-        print("Inlet created.")
+        logger.info(f"Stream(rate: {self.sampling_rate}, channels: {self.channels}).")
+        return True
 
-        self.sampling = int(self.inlet.info().nominal_srate())
-        self.nchannels = self.inlet.info().channel_count()
+    def stop(self):
+        """ """
+        logger.info("Killing lsl stream.")
+        self.process.terminate()
 
-        self._parse_channel_names()
-        print(self.channel_names)
 
-        print(f"Stream sampling rate {self.sampling},") 
-        print(f"Stream number of channels {self.nchannels}.")
+class DataCollector(utils.StoppableThread):
+    """ """
+    def __init__(self, stream, window_size, *args, **kwargs):
+        """ """
+        super().__init__(*args, **kwargs)
+        self.stream = stream
+        self.window_size = window_size * stream.sampling_rate
+        self.lock = threading.Lock()
+        self.data = [tuple([0] * stream.channels_count)] * self.window_size
 
-        self.window_size = self.sampling * 3
-        self.data = [tuple([0] * self.nchannels)] * self.window_size
-
-    def start(self):
-        """ Start reading samples.
-        """
-        def collect_data():
-            while True:
-                new_data, timestamps = self.inlet.pull_chunk(timeout=0.1)
-                print(new_data[0])
-                with self.data_lock:
-                    self.data.extend(new_data)
-                    self.data = self.data[-self.window_size:]
-       
-        self.collect_thread = threading.Thread(target=collect_data)
-        self.collect_thread.start()
+    def run(self):
+        """ """
+        while not self.stopped():
+            chunk, timestamps = self.stream.inlet.pull_chunk(timeout=0.1)
+            with self.lock:
+                self.data.extend(chunk)
+                self.data = self.data[-self.window_size:]
 
 
 class SignalPlotter:
-
+    """ """
     def __init__(self, channels, data_source):
+        """ """
         self.channel_names = channels
         self.nchannels = len(channels)
         self.data_source = data_source
@@ -85,19 +88,21 @@ class SignalPlotter:
 
         for i in range(self.nchannels):
             title = self.channel_names[i]
-            print(f"Adding subplot for {title}")
             ax = self.fig.add_subplot(self.nchannels, 1, i + 1)
             ax.set_title(title)
             self.axs.append(ax)
 
     def clear(self):
+        """ """
         for ax in self.axs:
             ax.clear()
 
     def set_ylim(self, ymin, ymax):
+        """ """
         [ax.set_ylim([ymin, ymax]) for ax in self.axs]
 
     def draw(self, event):
+        """ """
         self.clear()
         self.set_ylim(-200, 200)
 
@@ -115,19 +120,27 @@ class SignalPlotter:
             ax.plot(channel)
 
     def show(self):
+        """ """
         ani = FuncAnimation(self.fig, self.draw, interval=100)
-        pyplot.show() 
+        #pyplot.ion()
+        pyplot.show()
 
 
 if __name__ == '__main__':
 
-    muse_stream = MuseEegStream()
-    muse_stream.connect()
-    muse_stream.start()
+    stream = Stream(configuration.MUSE_MAC_ADDRESS)
+    stream.start()
+
+    collector = DataCollector(stream, 3)
+    collector.start()
 
     def data_source():
-        with muse_stream.data_lock:
-            return muse_stream.data.copy()
+        """ """
+        with collector.lock:
+            return collector.data.copy()
 
-    plotter = SignalPlotter(muse_stream.channel_names, data_source)
-    plotter.show()    
+    plotter = SignalPlotter(stream.channels, data_source)
+    plotter.show()
+
+    collector.stop()
+    stream.stop()
