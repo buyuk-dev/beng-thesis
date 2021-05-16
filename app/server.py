@@ -1,3 +1,14 @@
+""" Usage:
+
+    1. GET /spotify/connect --> spotify callback at /callback
+    2. GET /mark/<MARK_TO_PLAYLIST_NAME> --> label current playback
+    3. GET /muse/connect/<address> --> connect muse device and start LSL stream
+    4. GET /muse/start --> start collecting Muse data
+    5. GET /muse/stop --> stop collecting Muse data
+    6. GET /muse/disconnect --> disconnect Muse device
+    7. GET /muse/plot --> display real-time plot of muse data
+"""
+
 import flask
 import threading
 import multiprocessing
@@ -11,9 +22,8 @@ import spotify.filters
 import muse
 import utils
 
-
 server = flask.Flask("EegDataCollectionServer")
-server.debug = False
+server.debug = True
 
 stream = None
 collector = None

@@ -1,6 +1,7 @@
-CLIENT_ID = "<CLIEND ID>"
-CLIENT_SECRET = "<CLIENT SECRET>"
-SPOTIFY_CALLBACK_URL="http://localhost:5000/callback"
+CLIENT_ID = "<CODE>"
+CLIENT_SECRET = "<SECRET>"
+SPOTIFY_CALLBACK_URL = "http://localhost:5000/callback"
+MUSE_MAC_ADDRESS = "<MAC_ADDRESS>"
 MARK_TO_PLAYLIST_NAME = {
     "like": "EEG-Liked",
     "dislike": "EEG-Disliked",
