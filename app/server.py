@@ -59,7 +59,7 @@ def on_spotify_connect():
     logger.info("Connecting to Spotify...")
     auth_url = spotify.api.authorize_user(configuration.SPOTIFY_CALLBACK_URL)
     webbrowser.open(auth_url)
-    return flask.make_response("OK", 200)
+    return {}, 200
 
 
 @server.route("/spotify/status")
@@ -68,7 +68,7 @@ def on_spotify_status():
     response = {
         "status": configuration.TOKEN is not None
     }
-    return flask.jsonify(response)
+    return response, 200
 
 
 @server.route("/spotify/playback")
@@ -76,13 +76,13 @@ def on_spotify_playback():
     logger.info("Requesting current spotify playback info...")
     if configuration.TOKEN is None:
         logger.error(f"Spotify unauthorized.")
-        return flask.make_response(f"Spotify not authorized.", 401)
+        return {"error": f"Spotify not authorized."}, 401
 
     current_playback_info = get_current_playback_info(configuration.TOKEN)
     if current_playback_info is None:
-        return flask.make_response(f"Failed to get current playback from Spotify.", 400)
+        return {"error": "Failed to get current playback from Spotify."}, 400
 
-    return flask.jsonify(current_playback_info)
+    return current_playback_info, 200
 
 
 @server.route("/callback")
@@ -91,25 +91,25 @@ def spotify_auth_callback():
     auth_code = flask.request.args.get("code", None)
     if auth_code == None:
         logger.error(f"Spotify auth callback triggered with no auth code.")
-        return flask.make_response("Error: Auth code is None.", 401)
+        return {"error": "Auth code is None."}, 401
 
     logger.debug(f"Auth code is {auth_code}")
     code, resp = spotify.api.request_token(auth_code, configuration.SPOTIFY_CALLBACK_URL)
     if code != 200:
         logger.error(f"Failed to retrieve access token: HTTP {code}.")
-        return flask.make_response(resp, code)
+        return {"error": resp}, code
     token = resp["access_token"]
 
     code, resp = spotify.api.get_user_profile(token)
     if code != 200:
         logger.error(f"Failed to retireve user profile info: HTTP {code}.")
-        return flask.make_response(resp, code)
+        return {"error": resp}, code
     user_id = resp["id"]
 
     code, resp = spotify.api.get_user_playlists(token, user_id)
     if code != 200:
         logger.error(f"Failed to retrieve user's playlists: HTTP {code}.")
-        return flask.make_response(resp, code)
+        return {"error": resp}, code
 
     configuration.PLAYLISTS = spotify.filters.playlists(resp)
     configuration.USER_ID = user_id
@@ -119,7 +119,7 @@ def spotify_auth_callback():
     logger.debug(f"user_id = {configuration.USER_ID}")
     logger.debug(f"playlists = {configuration.PLAYLISTS}")
 
-    return flask.make_response("OK", 200)
+    return {}, 200
 
 
 @server.route("/mark/<value>")
@@ -127,11 +127,11 @@ def on_mark_song_command(value):
     logger.info(f"Marking song as {value}.")
     if value not in configuration.MARK_TO_PLAYLIST_NAME:
         logger.error(f"Invalid mark value: {value}.")
-        return flask.make_response(f"Invalid mark: {value}.", 400)
+        return {"error": f"Invalid mark: {value}."}, 400
 
     current_playback_info = get_current_playback_info(configuration.TOKEN)
     if current_playback_info is None:
-        return flask.make_response(f"Failed to get current playback from Spotify.", 400)
+        return {"error": f"Failed to get current playback from Spotify."}, 400
 
     playlist_name = configuration.MARK_TO_PLAYLIST_NAME[value]
     playlist = configuration.PLAYLISTS[playlist_name]
@@ -144,9 +144,9 @@ def on_mark_song_command(value):
     )
 
     if code != 200:
-        return flask.make_response(resp, code)
+        return {"error": resp}, code
 
-    return flask.make_response("OK", 200)
+    return {}, 200
 
 
 @server.route("/muse/connect/<address>")
@@ -164,7 +164,7 @@ def on_muse_connect(address):
     if collector is None:
         collector = muse.DataCollector(stream, 5)
 
-    return flask.make_response("OK", 200)
+    return {}, 200
 
 
 @server.route("/muse/start")
@@ -172,7 +172,7 @@ def on_muse_start_stream():
     global collector
     logger.info(f"Starting data stream.")
     collector.start()
-    return flask.make_response("OK", 200)
+    return {}, 200
 
 
 @server.route("/muse/stop")
@@ -180,7 +180,7 @@ def on_muse_stop_stream():
     global collector
     logger.info("Stopping data collection.")
     collector.stop()
-    return flask.make_response("OK", 200)
+    return {}, 200
 
 
 @server.route("/muse/disconnect")
@@ -188,7 +188,7 @@ def on_muse_disconnect():
     global stream
     logger.info(f"Disconnecting muse device.")
     stream.stop()
-    return flask.make_response("OK", 200)
+    return {}, 200
 
 
 @server.route("/muse/status")
@@ -199,7 +199,7 @@ def on_muse_status():
         "stream": stream is not None and stream.is_running(),
         "collector": collector is not None and collector.is_running()
     }
-    return flask.jsonify(response)
+    return response, 200
 
 
 @server.route("/muse/plot")
@@ -210,7 +210,7 @@ def on_muse_plot():
     logger.info(f"Plotting muse data.")
 
     if collector is None:
-        return flask.make_response("Data collector is not set.", 400)
+        return {"error": "Data collector is not set."}, 400
 
     def data_source():
         global collector
@@ -220,7 +220,7 @@ def on_muse_plot():
     plotter = muse.SignalPlotter(stream.channels, data_source)
     plotter.show()
 
-    return flask.make_response("OK", 200)
+    return {}, 200
 
 
 if __name__ == "__main__":
