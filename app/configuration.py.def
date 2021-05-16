@@ -1,2 +1,8 @@
-CLIENT_ID = "<CLIENT_ID>"
-CLIENT_SECRET = "<CLIENT_SECRET>"
+CLIENT_ID = "<CLIEND ID>"
+CLIENT_SECRET = "<CLIENT SECRET>"
+SPOTIFY_CALLBACK_URL="http://localhost:5000/callback"
+MARK_TO_PLAYLIST_NAME = {
+    "like": "EEG-Liked",
+    "dislike": "EEG-Disliked",
+    "meh": "EEG-Meh"
+}

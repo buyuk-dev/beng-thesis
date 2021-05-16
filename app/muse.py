@@ -1,0 +1,146 @@
+import muselsl
+import pylsl
+import threading
+import time
+import multiprocessing
+
+import matplotlib.pyplot as pyplot
+from matplotlib.animation import FuncAnimation
+
+from logger import logger
+import configuration
+import utils
+
+
+class Stream:
+    """ Wrapper to the muselsl.Stream class that enables stream termination.
+    """
+    def __init__(self, muse_mac_address):
+        """ """
+        self.muse_mac_address = muse_mac_address
+        
+    def start(self, stream_timeout=5, max_chunklen=30):
+        """ """
+        logger.info("Start lsl stream.")
+
+        def stream_process(address):
+            muselsl.stream(address)
+
+        self.process = multiprocessing.Process(
+            target=stream_process,
+            args=(self.muse_mac_address,)
+        )
+        self.process.start()
+
+        self.streams = pylsl.resolve_byprop('type', 'EEG', timeout=2)
+        if len(self.streams) == 0:
+            logger.error("Failed to start EEG stream.")
+            return False
+
+        self.inlet = pylsl.StreamInlet(self.streams[0], max_chunklen=max_chunklen)
+        self.sampling_rate = int(self.inlet.info().nominal_srate())
+        self.channels_count = self.inlet.info().channel_count()
+        channel_xml = self.inlet.info().desc().child("channels").child("channel")
+
+        self.channels = []
+        for k in range(self.channels_count):
+            self.channels.append(channel_xml.child_value("label"))
+            channel_xml = channel_xml.next_sibling()
+
+        logger.info(f"Stream(rate: {self.sampling_rate}, channels: {self.channels}).")
+        return True
+
+    def stop(self):
+        """ """
+        logger.info("Killing lsl stream.")
+        self.process.terminate()
+
+
+class DataCollector(utils.StoppableThread):
+    """ """
+    def __init__(self, stream, window_size, *args, **kwargs):
+        """ """
+        super().__init__(*args, **kwargs)
+        self.stream = stream
+        self.window_size = window_size * stream.sampling_rate
+        self.lock = threading.Lock()
+        self.data = [tuple([0] * stream.channels_count)] * self.window_size
+
+    def run(self):
+        """ """
+        while not self.stopped():
+            chunk, timestamps = self.stream.inlet.pull_chunk(timeout=0.1)
+            with self.lock:
+                self.data.extend(chunk)
+                self.data = self.data[-self.window_size:]
+
+
+class SignalPlotter:
+    """ """
+    def __init__(self, channels, data_source):
+        """ """
+        self.channel_names = channels
+        self.nchannels = len(channels)
+        self.data_source = data_source
+
+        self.fig = pyplot.figure()
+        self.axs = []
+
+        for i in range(self.nchannels):
+            title = self.channel_names[i]
+            ax = self.fig.add_subplot(self.nchannels, 1, i + 1)
+            ax.set_title(title)
+            self.axs.append(ax)
+
+    def clear(self):
+        """ """
+        for ax in self.axs:
+            ax.clear()
+
+    def set_ylim(self, ymin, ymax):
+        """ """
+        [ax.set_ylim([ymin, ymax]) for ax in self.axs]
+
+    def draw(self, event):
+        """ """
+        self.clear()
+        self.set_ylim(-200, 200)
+
+        data = self.data_source()
+ 
+        data_channels = [
+            [d[i] for d in data]
+            for i in range(self.nchannels)
+        ]
+
+        for n, ax in enumerate(self.axs):
+            ax.set_title(self.channel_names[n])
+
+        for ax, channel in zip(self.axs, data_channels):
+            ax.plot(channel)
+
+    def show(self):
+        """ """
+        ani = FuncAnimation(self.fig, self.draw, interval=100)
+        #pyplot.ion()
+        pyplot.show()
+
+
+if __name__ == '__main__':
+
+    stream = Stream(configuration.MUSE_MAC_ADDRESS)
+    stream.start()
+
+    collector = DataCollector(stream, 3)
+    collector.start()
+
+    def data_source():
+        """ """
+        with collector.lock:
+            return collector.data.copy()
+
+    plotter = SignalPlotter(stream.channels, data_source)
+    plotter.show()
+
+    collector.stop()
+    stream.stop()
