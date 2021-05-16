@@ -7,3 +7,4 @@ MARK_TO_PLAYLIST_NAME = {
     "dislike": "EEG-Disliked",
     "meh": "EEG-Meh"
 }
+TOKEN=None

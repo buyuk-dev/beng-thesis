@@ -7,6 +7,9 @@
     5. GET /muse/stop --> stop collecting Muse data
     6. GET /muse/disconnect --> disconnect Muse device
     7. GET /muse/plot --> display real-time plot of muse data
+    8. GET /spotify/status --> get spotify connection status
+    9. GET /spotify/playback --> get current playback info
+    10. GET /muse/status --> get muse stream and data collection status
 """
 
 import flask
@@ -22,8 +25,10 @@ import spotify.filters
 import muse
 import utils
 
+
 server = flask.Flask("EegDataCollectionServer")
 server.debug = True
+
 
 stream = None
 collector = None
@@ -55,6 +60,29 @@ def on_spotify_connect():
     auth_url = spotify.api.authorize_user(configuration.SPOTIFY_CALLBACK_URL)
     webbrowser.open(auth_url)
     return flask.make_response("OK", 200)
+
+
+@server.route("/spotify/status")
+def on_spotify_status():
+    logger.info("Requesting spotify connection status...")
+    response = {
+        "status": configuration.TOKEN is not None
+    }
+    return flask.jsonify(response)
+
+
+@server.route("/spotify/playback")
+def on_spotify_playback():
+    logger.info("Requesting current spotify playback info...")
+    if configuration.TOKEN is None:
+        logger.error(f"Spotify unauthorized.")
+        return flask.make_response(f"Spotify not authorized.", 401)
+
+    current_playback_info = get_current_playback_info(configuration.TOKEN)
+    if current_playback_info is None:
+        return flask.make_response(f"Failed to get current playback from Spotify.", 400)
+
+    return flask.jsonify(current_playback_info)
 
 
 @server.route("/callback")
@@ -163,6 +191,17 @@ def on_muse_disconnect():
     return flask.make_response("OK", 200)
 
 
+@server.route("/muse/status")
+def on_muse_status():
+    logger.info(f"Requesting muse device status.")
+    global stream
+    response = {
+        "stream": stream is not None and stream.is_running(),
+        "collector": collector is not None and collector.is_running()
+    }
+    return flask.jsonify(response)
+
+
 @server.route("/muse/plot")
 def on_muse_plot():
     """ This probably doesnt make much sense... """
@@ -177,7 +216,7 @@ def on_muse_plot():
         global collector
         with collector.lock:
             return collector.data.copy()
-
+ 
     plotter = muse.SignalPlotter(stream.channels, data_source)
     plotter.show()
 

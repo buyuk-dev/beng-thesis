@@ -1,25 +1,13 @@
-""" The shitties phone in the world is a miracle.
+""" The svhitties phone in the world is a miracle.
     It's your life that sucks, around the phone.
 """
 
 import tkinter as tk
-
 import matplotlib
 matplotlib.use("TkAgg")
 
-import matplotlib.pyplot as pyplot
-import matplotlib.animation as animation
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-import math
-import random
-from datetime import datetime
-
-import asyncio
 import threading
-import time
 import webbrowser
-from pprint import pprint
 
 from logger import logger
 import configuration
@@ -28,6 +16,7 @@ import spotify.api
 import spotify.callbacks
 import spotify.filters
 
+import client
 
 def get_playback_info(token):
     """ Request current playback from Spotify API.
@@ -49,31 +38,6 @@ def get_playback_info(token):
     return spotify.filters.playback_info(playback_info)
 
 
-class ProcessorThread(threading.Thread):
-    """
-    """
-    def __init__(self, *args, **kwargs):
-        super(ProcessorThread, self).__init__(*args, **kwargs)
-        self._stop_event = threading.Event()
-        self.data = [list(range(100)), [0] * 100]
-
-    def stop(self):
-        self._stop_event.set()
-
-    def stopped(self):
-        return self._stop_event.is_set()
-
-    def run(self):
-        logger.info("Starting processor thread.")
-        while not self.stopped():
-            try:
-                self.data[1] = [random.random() for i in range(100)]
-                time.sleep(0.1)
-            except Exception as e:
-                logger.error(str(e))
-                break
-
-
 def spotify_connector_thread():
     """ Spotify connector process.
     """
@@ -84,7 +48,7 @@ def spotify_connector_thread():
         logger.info("Spotify connection authorized.")
 
         code, resp = spotify.api.request_token(code, callback_url)
-        if (code != 200):
+        vif (code != 200):
             logger.error(f"Spotify token request failed with HTTP {code}.")
             return
 
@@ -134,7 +98,6 @@ class GuiApp(tk.Tk):
             self.start_recording.configure(state='normal')
 
         def on_app_close():
-            self.processor.stop()
             self.destroy()
 
         def on_like():
@@ -194,30 +157,14 @@ class GuiApp(tk.Tk):
         self.song_info = widgets.SongInfo(self, 8)
         self.song_info.pack()
 
-        # Signal graph
-        self.figure = pyplot.Figure()
-        self.ax = self.figure.add_subplot(111)
-
-        self.canvas = FigureCanvasTkAgg(self.figure, master=self)
-        self.canvas.get_tk_widget().pack()
-        self.ani = animation.FuncAnimation(self.figure, self.draw, interval=self.GRAPH_ANIMATION_INTERVAL)
-
+        # Connection Status Box
         self.status_frame = tk.Frame(self)
         self.status_frame.pack()
-
         self.spotify_connection_state = tk.Label(self.status_frame, text="Disconnected")
         self.spotify_connection_state.pack()
 
         # Processing setup
         self.after(self.PERIODIC_UPDATE_INTERVAL, self.periodic_update)
-        self.processor = ProcessorThread()
-        self.processor.start()
-        logger.info("Starting processor thread.")
-
-    def draw(self, event):
-        self.ax.clear()
-        self.ax.plot(self.processor.data[0], self.processor.data[1])
-        self.ax.title.set_text("{} sec".format(datetime.now()))
 
     def periodic_update(self):
         if hasattr(configuration, "TOKEN"):

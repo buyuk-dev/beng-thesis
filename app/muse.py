@@ -18,9 +18,17 @@ class Stream:
     def __init__(self, muse_mac_address):
         """ """
         self.muse_mac_address = muse_mac_address
-        
+        self.running = False
+        self.process = None
+
     def start(self, stream_timeout=5, max_chunklen=30):
         """ """
+        if self.is_running():
+            logger.warning("Stream process is already running...")
+            self.running = True
+            return True
+
+        self.running = False
         logger.info("Start lsl stream.")
 
         def stream_process(address):
@@ -48,12 +56,22 @@ class Stream:
             channel_xml = channel_xml.next_sibling()
 
         logger.info(f"Stream(rate: {self.sampling_rate}, channels: {self.channels}).")
+        self.running = True
         return True
+
+    def is_running(self):
+        if not self.running: return False
+        elif self.process is None: return False
+        return self.process.is_alive()
 
     def stop(self):
         """ """
+        if not self.is_running():
+            logger.warning("Stream process was not running already...")
+
         logger.info("Killing lsl stream.")
         self.process.terminate()
+        self.running = self.process.is_alive()
 
 
 class DataCollector(utils.StoppableThread):
@@ -65,14 +83,20 @@ class DataCollector(utils.StoppableThread):
         self.window_size = window_size * stream.sampling_rate
         self.lock = threading.Lock()
         self.data = [tuple([0] * stream.channels_count)] * self.window_size
+        self.running = False
+
+    def is_running(self):
+        return self.running and not self.stopped()
 
     def run(self):
         """ """
+        self.running = True
         while not self.stopped():
             chunk, timestamps = self.stream.inlet.pull_chunk(timeout=0.1)
             with self.lock:
                 self.data.extend(chunk)
                 self.data = self.data[-self.window_size:]
+        self.running = False
 
 
 class SignalPlotter:
@@ -122,7 +146,6 @@ class SignalPlotter:
     def show(self):
         """ """
         ani = FuncAnimation(self.fig, self.draw, interval=100)
-        #pyplot.ion()
         pyplot.show()
 
 
