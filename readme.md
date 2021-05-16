@@ -145,3 +145,23 @@ Can location of reference electrode affect the signal quality?
 How about using multiple reference electrodes?
 What if we used each electrode as a reference for all others creating a fully connected graph of electrodes/reference electrodes?
 Would more reference electrodes yield more spatial information about the signal source?
+
+
+## Introduction to Modern Brain-Computer Interface Design
+
+Notes from youtube recordings of Christian A. Kothe from Swartz Center for Computational Neuroscience, University of California San Diego.
+
+https://www.youtube.com/watch?v=Wlwvgm3AHvc&list=PLbbCsk7MUIGcO_lZMbyymWU2UezVHNaMq
+
+
+### 1. What is a BCI
+
+"A system which takes a biosignal measured from a person and predicts some aspect of the person's mental state."
+
+1. Active BCI vs Reactive BCI
+
+Active relates to the user controlling consciously its state in order to trigger an effect in the application.
+Reactive means that the system observers users reaction to some external event.
+
+
+

@@ -129,4 +129,6 @@ if __name__ == '__main__':
             return muse_stream.data.copy()
 
     plotter = SignalPlotter(muse_stream.channel_names, data_source)
-    plotter.show()    
+    plotter.show()
+
+

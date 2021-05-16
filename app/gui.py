@@ -3,7 +3,6 @@
 """
 
 import tkinter as tk
-import tkinter.ttk as ttk
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -20,7 +19,6 @@ import logging
 logging.basicConfig(format='%(asctime)s %(threadName)s %(levelname)s %(message)s')
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
-
 
 import asyncio
 import threading
@@ -224,13 +222,9 @@ class GuiApp(tk.Tk):
         self.dislike = tk.Button(self.control_frame, text="Dislike", command=on_dislike)
         self.dislike.pack(side=tk.LEFT)
 
-        # Text Area
-        self.response_field = widgets.TextArea(self, height=10)
-        self.response_field.pack()
-
-        # Progress bar
-        self.song_progress = ttk.Progressbar(self, orient=tk.HORIZONTAL, mode="determinate")
-        self.song_progress.pack()
+        # Song Info Box
+        self.song_info = widgets.SongInfo(self, 8)
+        self.song_info.pack()
 
         # Signal graph
         self.figure = pyplot.Figure()
@@ -258,19 +252,9 @@ class GuiApp(tk.Tk):
         self.ax.title.set_text("{} sec".format(datetime.now()))
 
     def periodic_update(self):
-        """ 
-        """
         if hasattr(configuration, "TOKEN"):
             self.spotify_connection_state.configure(text=f"Connected: {configuration.TOKEN[:10]}...")
-            self.playback_info = get_playback_info(configuration.TOKEN)
-
-            if self.playback_info is not None:
-                text = "\n".join([f"{key: <10} = {value: <20}" for key, value in self.playback_info.items()])
-                self.response_field.set_text(text)
-
-                progress = (self.playback_info["progress"] / self.playback_info["duration"]) * 100
-                self.song_progress["value"] = progress
-
+            self.song_info.update(get_playback_info(configuration.TOKEN))
         else:
             self.connect_to_spotify.configure(state='normal')
 
