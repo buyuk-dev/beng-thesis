@@ -3,6 +3,7 @@ import argparse
 from logger import logger
 import configuration
 import client
+import muse
 
 class SpotifyCommand:
 
@@ -33,7 +34,22 @@ class MuseCommand:
     def on_plot(args):
         """ TODO: make this non-blocking by plotting client-side.
         """
-        client.muse_blocking_data_plot()
+        stream = muse.StreamConnector.find()
+        if stream is None:
+            logger.error("You must first start a stream.")
+            return
+
+        collector = muse.DataCollector(stream, 3)
+        collector.start()
+
+        def data_source():
+            with collector.lock:
+                return collector.data.copy()
+
+        plotter = muse.SignalPlotter(stream.channels, data_source)
+        plotter.show()
+
+        collector.stop()
 
 
 if __name__ == '__main__':
