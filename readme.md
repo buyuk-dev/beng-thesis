@@ -32,14 +32,24 @@ https://eegedu.com/
 
 ## Installing MuseLSL python library
 
+note: currently running the project on macos requires installing customized version of muselsl
+      with bleak backend support from https://github.com/buyuk-dev/muse-lsl
+      It enables using muse-lsl without external dongle.
+
 https://github.com/alexandrebarachant/muse-lsl
 https://github.com/alexandrebarachant/muse-lsl/blob/master/examples/neurofeedback.py
 
+
+    # on MacOS
+    brew install python-tk
+
+    # on ubuntu
     sudo apt-get install libglfw3-dev libgles2-mesa-dev      // If egl display config issue
     sudo apt install libpcap-dev libpcap0.8 libpcap0.8-dev
     sudo apt install python3-tk
     sudo apt install python3-vispy
 
+    # common
     pip install muselsl
     pip install pygatt==3.1.1
     pip install mne

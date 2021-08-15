@@ -12,11 +12,54 @@ import configuration
 import utils
 
 
+class StreamConnector:
+
+    def __init__(self, stream, max_chunklen=30):
+        self.stream = stream
+        self.max_chunklen = max_chunklen
+        self.inlet = pylsl.StreamInlet(self.stream, max_chunklen=max_chunklen)
+        self.configure()
+
+    def configure(self):
+        self.sampling_rate = int(self.inlet.info().nominal_srate())
+        self.channels_count = self.inlet.info().channel_count()
+        channel_xml = self.inlet.info().desc().child("channels").child("channel")
+
+        self.channels = []
+        for k in range(self.channels_count):
+            self.channels.append(channel_xml.child_value("label"))
+            channel_xml = channel_xml.next_sibling()
+
+        logger.info(f"Stream(rate: {self.sampling_rate}, channels: {self.channels}).")
+
+    @staticmethod
+    def find():
+        streams = pylsl.resolve_byprop('type', 'EEG', timeout=10)
+        if len(streams) == 0:
+            logger.error("No active streams have been found.")
+            return None 
+
+        logger.info(f"Found {len(streams)} active streams.")
+        for idx, stream in enumerate(streams):
+            logger.info(f"{idx}: {stream}")
+        
+        logger.info("Connecting to stream #0.")
+        return StreamConnector(streams[0])
+
+
+def Stream_stream_process(address):
+    """ needs to be a global scope, importable object due to pickling
+        done in multiprocessing.
+    """
+    muselsl.stream(address)
+   
+
 class Stream:
     """ Wrapper to the muselsl.Stream class that enables stream termination.
     """
     def __init__(self, muse_mac_address):
         """ """
+        logger.info('New stream created for {muse_mac_address}')
         self.muse_mac_address = muse_mac_address
         self.running = False
         self.process = None
@@ -31,31 +74,22 @@ class Stream:
         self.running = False
         logger.info("Start lsl stream.")
 
-        def stream_process(address):
-            muselsl.stream(address)
-
         self.process = multiprocessing.Process(
-            target=stream_process,
+            target=Stream_stream_process,
             args=(self.muse_mac_address,)
         )
         self.process.start()
 
-        self.streams = pylsl.resolve_byprop('type', 'EEG', timeout=2)
-        if len(self.streams) == 0:
-            logger.error("Failed to start EEG stream.")
+        connector = StreamConnector.find()
+        if connector is None:
+            logger.warning("Failed to find a connector.")
             return False
 
-        self.inlet = pylsl.StreamInlet(self.streams[0], max_chunklen=max_chunklen)
-        self.sampling_rate = int(self.inlet.info().nominal_srate())
-        self.channels_count = self.inlet.info().channel_count()
-        channel_xml = self.inlet.info().desc().child("channels").child("channel")
+        self.inlet = connector.inlet
+        self.sampling_rate = connector.sampling_rate
+        self.channels_count = connector.channels_count
+        self.channels = connector.channels
 
-        self.channels = []
-        for k in range(self.channels_count):
-            self.channels.append(channel_xml.child_value("label"))
-            channel_xml = channel_xml.next_sibling()
-
-        logger.info(f"Stream(rate: {self.sampling_rate}, channels: {self.channels}).")
         self.running = True
         return True
 
