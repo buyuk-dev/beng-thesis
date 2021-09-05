@@ -3,8 +3,15 @@ import requests
 
 HOST = "http://localhost:5000"
 
+
 def connect_spotify():
     r = requests.get(f"{HOST}/spotify/connect")
+    code, response = r.status_code, r.json()
+    return code, response
+
+def get_config(userid):
+    """ Request config from the /user/<userid>/config endpoint."""
+    r = requests.get(f"{HOST}/user/{userid}/config")
     code, response = r.status_code, r.json()
     return code, response
 

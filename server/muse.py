@@ -185,7 +185,7 @@ class SignalPlotter:
 
 if __name__ == '__main__':
 
-    stream = Stream(configuration.MUSE_MAC_ADDRESS)
+    stream = Stream(configuration.muse.get_address())
     stream.start()
 
     collector = DataCollector(stream, 3)

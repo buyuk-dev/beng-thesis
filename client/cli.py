@@ -1,9 +1,20 @@
 import argparse
 
 from logger import logger
-import configuration
 import client
-import muse
+import pprint
+
+class ConfigCommand:
+
+    @staticmethod
+    def on_config_request(args):
+        userid = 0
+        status, config = client.get_config(userid)
+        pprint.pprint(config)
+
+    @staticmethod
+    def on_config_update(args):
+        raise NotImplementedError()
 
 
 class SpotifyCommand:
@@ -45,30 +56,50 @@ class MuseCommand:
 
     @staticmethod
     def on_plot(args):
-        """ TODO: make this non-blocking by plotting client-side.
+        """ TODO: Implement it in a non-blocking way.
+                  Preferably by streaming the data from the server,
+                  as this will allow simple integration with an html client.
         """
-        stream = muse.StreamConnector.find()
-        if stream is None:
-            logger.error("You must first start a stream.")
-            return
+        client.muse_blocking_data_plot()
+        return
 
-        collector = muse.DataCollector(stream, 3)
-        collector.start()
+#        stream = muse.StreamConnector.find()
+#        if stream is None:
+#            logger.error("You must first start a stream.")
+#            return
 
-        def data_source():
-            with collector.lock:
-                return collector.data.copy()
+#        collector = muse.DataCollector(stream, 3)
+#        collector.start()
 
-        plotter = muse.SignalPlotter(stream.channels, data_source)
-        plotter.show()
+#        def data_source():
+#            with collector.lock:
+#                return collector.data.copy()
 
-        collector.stop()
+#        plotter = muse.SignalPlotter(stream.channels, data_source)
+#        plotter.show()
+
+#        collector.stop()
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(prog="bci")
     subparsers = parser.add_subparsers()
+
+    userid = 0
+    status, config = client.get_config(userid)
+    if "labels" not in config:
+        logger.error("Config returned by the server doesn't contain required entry.")
+
+    # Config Commands Parser
+    config_parser = subparsers.add_parser("config")
+    config_subparsers = config_parser.add_subparsers()
+
+    config_show_parser = config_subparsers.add_parser("show")
+    config_show_parser.set_defaults(command=ConfigCommand.on_config_request)
+
+    config_update_parser = config_subparsers.add_parser("update")
+    config_update_parser.set_defaults(command=ConfigCommand.on_config_update)
 
     # Spotify Commands Parser
     spotify_parser = subparsers.add_parser("spotify")
@@ -82,7 +113,7 @@ if __name__ == '__main__':
 
     spotify_mark_parser = spotify_subparsers.add_parser("mark")
     spotify_mark_parser.set_defaults(command=SpotifyCommand.on_mark_current_song)
-    spotify_mark_parser.add_argument("label", choices=configuration.MARK_TO_PLAYLIST_NAME.keys())
+    spotify_mark_parser.add_argument("label", choices=config["labels"])
 
     # Muse Commands Parser
     muse_parser = subparsers.add_parser("muse")

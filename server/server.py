@@ -1,15 +1,16 @@
 """ Usage:
-
-    1. GET /spotify/connect --> spotify callback at /callback
-    2. GET /mark/<MARK_TO_PLAYLIST_NAME> --> label current playback
-    3. GET /muse/connect/<address> --> connect muse device and start LSL stream
-    4. GET /muse/start --> start collecting Muse data
-    5. GET /muse/stop --> stop collecting Muse data
-    6. GET /muse/disconnect --> disconnect Muse device
-    7. GET /muse/plot --> display real-time plot of muse data
-    8. GET /spotify/status --> get spotify connection status
-    9. GET /spotify/playback --> get current playback info
-    10. GET /muse/status --> get muse stream and data collection status
+    0. GET /system/config/<userid> --> get app settings
+    1. POST /system/config/<userid> --> update app settings
+    2. GET /spotify/connect --> spotify callback at /callback
+    3. GET /mark/<MARK_TO_PLAYLIST_NAME> --> label current playback
+    4. GET /muse/connect/<address> --> connect muse device and start LSL stream
+    5. GET /muse/start --> start collecting Muse data
+    6. GET /muse/stop --> stop collecting Muse data
+    7. GET /muse/disconnect --> disconnect Muse device
+    8. GET /muse/plot --> display real-time plot of muse data
+    9. GET /spotify/status --> get spotify connection status
+    10. GET /spotify/playback --> get current playback info
+    11. GET /muse/status --> get muse stream and data collection status
 """
 
 import flask
@@ -19,6 +20,7 @@ import time
 import webbrowser
 
 from logger import logger
+
 import configuration
 import spotify.api
 import spotify.filters
@@ -54,10 +56,24 @@ def get_current_playback_info(token):
     return spotify.filters.playback_info(playback_info)
 
 
+@server.route("/user/<userid>/config")
+def on_system_config(userid):
+    if flask.request.method == 'GET':
+        logger.info("User requests configuration.");
+        return configuration.get_config_view(userid), 200
+    elif flask.request.method == 'POST':
+        logger.info("User wants to update configuration.");
+        status = configuration.update_config(userid, flask.request.json)
+        return configuration.get_config_view(userid), 200
+    else:
+        logger.error("Unsupported request method.");
+        return {"error": "Invalid request method, must be GET or POST."}, code
+
+
 @server.route("/spotify/connect")
 def on_spotify_connect():
     logger.info("Connecting to Spotify...")
-    auth_url = spotify.api.authorize_user(configuration.SPOTIFY_CALLBACK_URL)
+    auth_url = spotify.api.authorize_user(configuration.spotify.get_callback_url())
     webbrowser.open(auth_url)
     return {}, 200
 
@@ -66,7 +82,7 @@ def on_spotify_connect():
 def on_spotify_status():
     logger.info("Requesting spotify connection status...")
     response = {
-        "status": configuration.TOKEN is not None
+        "status": configuration.spotify.get_token() is not None
     }
     return response, 200
 
@@ -74,11 +90,11 @@ def on_spotify_status():
 @server.route("/spotify/playback")
 def on_spotify_playback():
     logger.info("Requesting current spotify playback info...")
-    if configuration.TOKEN is None:
+    if configuration.spotify.get_token() is None:
         logger.error(f"Spotify unauthorized.")
         return {"error": f"Spotify not authorized."}, 401
 
-    current_playback_info = get_current_playback_info(configuration.TOKEN)
+    current_playback_info = get_current_playback_info(configuration.spotify.get_token())
     if current_playback_info is None:
         return {"error": "Failed to get current playback from Spotify."}, 400
 
@@ -94,7 +110,7 @@ def spotify_auth_callback():
         return {"error": "Auth code is None."}, 401
 
     logger.debug(f"Auth code is {auth_code}")
-    code, resp = spotify.api.request_token(auth_code, configuration.SPOTIFY_CALLBACK_URL)
+    code, resp = spotify.api.request_token(auth_code, configuration.spotify.get_callback_url())
     if code != 200:
         logger.error(f"Failed to retrieve access token: HTTP {code}.")
         return {"error": resp}, code
@@ -111,13 +127,13 @@ def spotify_auth_callback():
         logger.error(f"Failed to retrieve user's playlists: HTTP {code}.")
         return {"error": resp}, code
 
-    configuration.PLAYLISTS = spotify.filters.playlists(resp)
-    configuration.USER_ID = user_id
-    configuration.TOKEN = token
+    configuration.spotify.set_playlists(spotify.filters.playlists(resp))
+    configuration.spotify.set_user_id(user_id)
+    configuration.spotify.set_token(token)
 
-    logger.debug(f"token = {configuration.TOKEN}")
-    logger.debug(f"user_id = {configuration.USER_ID}")
-    logger.debug(f"playlists = {configuration.PLAYLISTS}")
+    logger.debug(f"token = {configuration.spotify.get_token()}")
+    logger.debug(f"user_id = {configuration.spotify.get_user_id()}")
+    logger.debug(f"playlists = {configuration.spotify.get_playlists()}")
 
     return {}, 200
 
@@ -125,20 +141,20 @@ def spotify_auth_callback():
 @server.route("/mark/<value>")
 def on_mark_song_command(value):
     logger.info(f"Marking song as {value}.")
-    if value not in configuration.MARK_TO_PLAYLIST_NAME:
+    if value not in configuration.app.get_labels_to_playlists_map():
         logger.error(f"Invalid mark value: {value}.")
         return {"error": f"Invalid mark: {value}."}, 400
 
-    current_playback_info = get_current_playback_info(configuration.TOKEN)
+    current_playback_info = get_current_playback_info(configuration.spotify.get_token())
     if current_playback_info is None:
         return {"error": f"Failed to get current playback from Spotify."}, 400
 
-    playlist_name = configuration.MARK_TO_PLAYLIST_NAME[value]
-    playlist = configuration.PLAYLISTS[playlist_name]
+    playlist_name = configuration.app.get_labels_to_playlists_map()[value]
+    playlist = configuration.spotify.get_playlists()[playlist_name]
 
     logger.debug(f"Adding current track {current_playback_info['song']} to {playlist_name}.")
     code, resp = spotify.api.add_item_to_playlist(
-        configuration.TOKEN,
+        configuration.get_token(),
         playlist["id"],
         current_playback_info["uri"]
     )
@@ -157,7 +173,7 @@ def on_muse_connect(address):
     logger.info(f"Attempting connection to Muse 2 device at {address}.")
 
     if stream is None:
-        stream = muse.Stream(configuration.MUSE_MAC_ADDRESS)
+        stream = muse.Stream(configuration.muse.get_address())
 
     stream.start()
 
@@ -221,6 +237,11 @@ def on_muse_plot():
     plotter.show()
 
     return {}, 200
+
+
+@server.route("/save")
+def on_data_save():
+    logger.info("Saving data for current playback.") 
 
 
 if __name__ == "__main__":

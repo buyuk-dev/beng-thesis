@@ -1,5 +1,5 @@
 import requests
-import configuration as config
+import configuration
 import urllib
 import aiohttp
 
@@ -8,7 +8,7 @@ def authorize_user(redirect_uri):
     """ Retrieve authorization page html
     """
     params = {
-        "client_id": config.CLIENT_ID,
+        "client_id": configuration.spotify.get_client_id(),
         "response_type": "code",
         "redirect_uri": redirect_uri,
         "scope": " ".join([
@@ -29,8 +29,8 @@ def request_token(code, redirect_uri):
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": redirect_uri,
-        "client_id": config.CLIENT_ID,
-        "client_secret": config.CLIENT_SECRET
+        "client_id": configuration.spotify.get_client_id(),
+        "client_secret": configuration.spotify.get_client_secret()
     }
     resp = requests.post("https://accounts.spotify.com/api/token", data=params)
     return resp.status_code, resp.json()
