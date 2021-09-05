@@ -5,12 +5,25 @@ import configuration
 import client
 import muse
 
+
 class SpotifyCommand:
 
     @staticmethod
     def on_connect(args):
         client.connect_spotify()
-    
+
+    @staticmethod
+    def on_playback_request(args):
+        print(client.get_current_playback())
+
+    @staticmethod
+    def on_status_request(args):
+        print(client.spotify_status())
+
+    @staticmethod
+    def on_mark_current_song(args):
+        client.mark_current_song(args.label)
+
 
 class MuseCommand:
 
@@ -60,8 +73,16 @@ if __name__ == '__main__':
     # Spotify Commands Parser
     spotify_parser = subparsers.add_parser("spotify")
     spotify_subparsers = spotify_parser.add_subparsers()
+
     spotify_connect_parser = spotify_subparsers.add_parser("connect")
     spotify_connect_parser.set_defaults(command=SpotifyCommand.on_connect)
+
+    spotify_playback_parser = spotify_subparsers.add_parser("playback")
+    spotify_playback_parser.set_defaults(command=SpotifyCommand.on_playback_request)
+
+    spotify_mark_parser = spotify_subparsers.add_parser("mark")
+    spotify_mark_parser.set_defaults(command=SpotifyCommand.on_mark_current_song)
+    spotify_mark_parser.add_argument("label", choices=configuration.MARK_TO_PLAYLIST_NAME.keys())
 
     # Muse Commands Parser
     muse_parser = subparsers.add_parser("muse")
