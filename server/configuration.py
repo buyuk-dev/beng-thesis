@@ -227,9 +227,12 @@ def get_config_view(userid):
 
 
 def update_config(userid, partial_config_json):
-    pass
+    global spotify
+    global muse
+    global app
+    logger.warning("Config update requested, but currently user isn't allowed to change any settings.")
 
- 
+
 if __name__ == '__main__':
     reset_configuration()
 else:
