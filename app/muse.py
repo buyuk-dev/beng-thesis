@@ -34,7 +34,7 @@ class StreamConnector:
 
     @staticmethod
     def find():
-        streams = pylsl.resolve_byprop('type', 'EEG', timeout=10)
+        streams = pylsl.resolve_byprop('type', 'EEG', timeout=30)
         if len(streams) == 0:
             logger.error("No active streams have been found.")
             return None 
@@ -51,7 +51,7 @@ def Stream_stream_process(address):
     """ needs to be a global scope, importable object due to pickling
         done in multiprocessing.
     """
-    muselsl.stream(address)
+    muselsl.stream(address=address, backend="bleak")
    
 
 class Stream:
