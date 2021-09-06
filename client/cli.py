@@ -56,29 +56,18 @@ class MuseCommand:
 
     @staticmethod
     def on_plot(args):
-        """ TODO: Implement it in a non-blocking way.
-                  Preferably by streaming the data from the server,
-                  as this will allow simple integration with an html client.
-        """
-        client.muse_blocking_data_plot()
-        return
+        raise NotImplementedError()
 
-#        stream = muse.StreamConnector.find()
-#        if stream is None:
-#            logger.error("You must first start a stream.")
-#            return
 
-#        collector = muse.DataCollector(stream, 3)
-#        collector.start()
+class SessionCommand:
 
-#        def data_source():
-#            with collector.lock:
-#                return collector.data.copy()
+    @staticmethod
+    def on_start(args):
+        client.start_session()
 
-#        plotter = muse.SignalPlotter(stream.channels, data_source)
-#        plotter.show()
-
-#        collector.stop()
+    @staticmethod
+    def on_stop(args):
+        client.stop_session()
 
 
 if __name__ == '__main__':
@@ -134,7 +123,19 @@ if __name__ == '__main__':
     muse_plot_parser = muse_subparsers.add_parser("plot")
     muse_plot_parser.set_defaults(command=MuseCommand.on_plot)
 
-    # Parse Commands
+    # Session Commands Parser
+    session_parser = subparsers.add_parser("session")
+    session_subparsers = session_parser.add_subparsers()
+
+    session_start_parser = session_subparsers.add_parser("start")
+    session_start_parser.set_defaults(command=SessionCommand.on_start)
+
+    session_stop_parser = session_subparsers.add_parser("stop")
+    session_stop_parser.set_defaults(command=SessionCommand.on_stop)
+
     args = parser.parse_args()
     args.command(args)
 
+    # Parse Commands
+    args = parser.parse_args()
+    args.command(args)
