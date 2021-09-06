@@ -21,7 +21,7 @@ class SpotifyCommand:
 
     @staticmethod
     def on_connect(args):
-        client.connect_spotify()
+        print(client.connect_spotify())
 
     @staticmethod
     def on_playback_request(args):
@@ -33,26 +33,26 @@ class SpotifyCommand:
 
     @staticmethod
     def on_mark_current_song(args):
-        client.mark_current_song(args.label)
+        print(client.mark_current_song(args.label))
 
 
 class MuseCommand:
 
     @staticmethod
     def on_connect(args):
-        client.connect_muse("address")
+        print(client.connect_muse("address"))
 
     @staticmethod
     def on_disconnect(args):
-        client.disconnect_muse()
+        print(client.disconnect_muse())
 
     @staticmethod
     def on_start(args):
-        client.start_muse_data_collection()
+        print(client.start_muse_data_collection())
 
     @staticmethod
     def on_stop(args):
-        client.stop_muse_data_collection()
+        print(client.stop_muse_data_collection())
 
     @staticmethod
     def on_plot(args):
@@ -63,11 +63,11 @@ class SessionCommand:
 
     @staticmethod
     def on_start(args):
-        client.start_session()
+        print(client.session_start())
 
     @staticmethod
     def on_stop(args):
-        client.stop_session()
+        print(client.session_stop())
 
 
 if __name__ == '__main__':
@@ -132,9 +132,6 @@ if __name__ == '__main__':
 
     session_stop_parser = session_subparsers.add_parser("stop")
     session_stop_parser.set_defaults(command=SessionCommand.on_stop)
-
-    args = parser.parse_args()
-    args.command(args)
 
     # Parse Commands
     args = parser.parse_args()
