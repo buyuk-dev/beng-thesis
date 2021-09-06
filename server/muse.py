@@ -37,12 +37,12 @@ class StreamConnector:
         streams = pylsl.resolve_byprop('type', 'EEG', timeout=30)
         if len(streams) == 0:
             logger.error("No active streams have been found.")
-            return None 
+            return None
 
         logger.info(f"Found {len(streams)} active streams.")
         for idx, stream in enumerate(streams):
             logger.info(f"{idx}: {stream}")
-        
+
         logger.info("Connecting to stream #0.")
         return StreamConnector(streams[0])
 
@@ -52,7 +52,7 @@ def Stream_stream_process(address):
         done in multiprocessing.
     """
     muselsl.stream(address=address, backend="bleak")
-   
+
 
 class Stream:
     """ Wrapper to the muselsl.Stream class that enables stream termination.
@@ -165,7 +165,7 @@ class SignalPlotter:
         self.set_ylim(-200, 200)
 
         data = self.data_source()
- 
+
         data_channels = [
             [d[i] for d in data]
             for i in range(self.nchannels)

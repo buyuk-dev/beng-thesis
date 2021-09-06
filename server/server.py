@@ -13,6 +13,8 @@
     11. GET /muse/status --> get muse stream and data collection status
 """
 
+import os
+import sys
 import flask
 import threading
 import multiprocessing
@@ -27,6 +29,7 @@ import spotify.filters
 import muse
 import utils
 import monitor
+import exporter
 
 server = flask.Flask("EegDataCollectionServer")
 server.debug = True
@@ -34,6 +37,73 @@ server.debug = True
 
 stream = None
 collector = None
+session = None
+
+
+class Session:
+
+    def __init__(self):
+        self.monitor = monitor.PlaybackMonitor(lambda old, new, ts: self.on_playback_change(old, new, ts))
+        self.init_new_item()
+        self.userid = 0 # Currently userid is not used for anything.
+        self.session_data_dir = "data"
+
+    def init_new_item(self):
+        self.markers = {
+            "start": None,
+            "end": None,
+            "labeling": None
+        }
+        self.set_label(None)
+
+    def on_playback_change(self, old, new, timestamp):
+        """ TODO: Move logic detecting type of change inside the monitor,
+                  and replace current callback with different ones for
+                  specific change types.
+        """
+        logger.info(f"Playback change detected at {timestamp}")
+        if old is None:
+            self.on_playabck_started(new, timestamp)
+        elif new is None:
+            self.on_playback_stopped(old, timestamp)
+        else:
+            self.on_playback_next(old, new, timestamp)
+
+    def on_playback_started(self, playback_info, timestamp):
+        logger.info("Playback has started.")
+        self.markers["start"] = timestamp
+
+    def on_playback_stopped(self, playback_info, timestamp):
+        logger.info("Playback stopped.")
+        self.markers["end"] = timestamp
+
+    def on_playback_next(self, old, new, timestamp):
+        logger.info("New playback item.")
+        self.markers["end"] = timestamp
+        df = self._build_data_frame()
+        path = os.path.join(self.session_data_dir, f"{timestamp}.json")
+        df.save(path)
+        self.init_new_item()
+
+    def set_label(self, label):
+        self.label = label
+        self.markers["labeling"] = datetime.now()
+
+    def start(self):
+        self.monitor.start()
+
+    def stop(self):
+        self.monitor.stop()
+
+    def _build_data_frame(self):
+        return exported.DataFrame(
+            self.playback_info,
+            [], # TODO: add actual data once available
+            self.markers,
+            self.label,
+            self.userid
+        )
+
 
 
 @server.route("/user/<userid>/config")
@@ -212,7 +282,7 @@ def on_muse_plot():
         global collector
         with collector.lock:
             return collector.data.copy()
- 
+
     plotter = muse.SignalPlotter(stream.channels, data_source)
     plotter.show()
 
@@ -221,7 +291,7 @@ def on_muse_plot():
 
 @server.route("/save")
 def on_data_save():
-    logger.info("Saving data for current playback.") 
+    logger.info("Saving data for current playback.")
 
 
 if __name__ == "__main__":
