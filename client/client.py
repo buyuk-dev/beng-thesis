@@ -59,4 +59,13 @@ def muse_blocking_data_plot():
     r = requests.get(f"{HOST}/muse/plot")
     code, response = r.status_code, r.json()
     return code, response
-    
+
+def session_start(): 
+    r = requests.get(f"{HOST}/session/start")
+    code, response = r.status_code, r.json()
+    return code, response
+
+def session_stop(): 
+    r = requests.get(f"{HOST}/session/stop")
+    code, response = r.status_code, r.json()
+    return code, response
