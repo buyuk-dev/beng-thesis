@@ -120,10 +120,10 @@ class DataCollector(utils.StoppableThread):
         self.clear()
 
     def clear(self):
-        self.data = [tuple([0] * stream.channels_count)]
+        self.data = [tuple([0] * self.stream.channels_count)]
 
     def get_data_size(self):
-        return len(self.data) * stream.channels_count * stream.sampling_rate
+        return len(self.data) * self.stream.channels_count * self.stream.sampling_rate
 
     def get_data(self):
         return self.data.copy()
