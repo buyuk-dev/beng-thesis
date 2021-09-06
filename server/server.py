@@ -19,6 +19,7 @@ import flask
 import threading
 import multiprocessing
 import time
+from datetime import datetime
 import webbrowser
 
 from logger import logger
@@ -67,7 +68,7 @@ class Session:
         """
         logger.info(f"Playback change detected at {timestamp}")
         if old is None:
-            self.on_playabck_started(new, timestamp)
+            self.on_playback_started(new, timestamp)
         elif new is None:
             self.on_playback_stopped(old, timestamp)
         else:
@@ -85,7 +86,7 @@ class Session:
     def on_playback_next(self, old, new, timestamp):
         logger.info("New playback item.")
         self.markers["end"] = timestamp
-        df = self._build_data_frame()
+        df = self._build_data_frame(old)
         path = os.path.join(self.session_data_dir, f"{timestamp}.json")
         df.save(path)
         self.init_new_item()
@@ -100,10 +101,10 @@ class Session:
     def stop(self):
         self.monitor.stop()
 
-    def _build_data_frame(self):
+    def _build_data_frame(self, playback_info):
         global collector
-        return exported.DataFrame(
-            self.playback_info,
+        return exporter.DataFrame(
+            playback_info,
             collector.get_data(),
             self.markers,
             self.label,
@@ -233,7 +234,7 @@ def on_muse_connect(address):
     stream.start()
 
     if collector is None:
-        collector = muse.DataCollector(stream, 5)
+        collector = muse.DataCollector(stream)
 
     return {}, 200
 
@@ -300,12 +301,13 @@ def on_session_start():
     if configuration.spotify.get_token() is None:
         return {"error": "Spotify access token unavailable. Connect to Spotify."}, 400
 
-    if stream is not None or stream.is_running():
+    if stream is None or not stream.is_running():
         return {"error": "Muse is not connected. Connect to Muse."}, 400
 
     if collector is None:
         return {"error": "Data collection needs to be started first."}, 400
 
+    global session
     session = Session()
     session.start()
     return {}, 200
@@ -314,8 +316,11 @@ def on_session_start():
 @server.route("/session/stop")
 def on_session_stop():
     logger.info("Stopping session.")
+
+    global session
     if session is None:
         return {"error": "No active session exists."}, 400
+
     session.stop()
     return {}, 200
 
