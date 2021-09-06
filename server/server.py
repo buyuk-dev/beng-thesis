@@ -26,7 +26,7 @@ import spotify.api
 import spotify.filters
 import muse
 import utils
-
+import monitor
 
 server = flask.Flask("EegDataCollectionServer")
 server.debug = True
@@ -34,26 +34,6 @@ server.debug = True
 
 stream = None
 collector = None
-
-
-def get_current_playback_info(token):
-    """ Request current playback from Spotify API.
-    """
-    if token is None:
-        logger.error("Spotify API access token unavailable.")
-        return
-
-    code, playback_info = spotify.api.get_current_playback_info(token)
-
-    if code == 204:
-        logger.warning("Looks like nothing is playing at the moment.")
-        return
-
-    if code != 200:
-        logger.error(f"Error getting current playback: HTTP {code}.")
-        return
-
-    return spotify.filters.playback_info(playback_info)
 
 
 @server.route("/user/<userid>/config")
@@ -94,7 +74,7 @@ def on_spotify_playback():
         logger.error(f"Spotify unauthorized.")
         return {"error": f"Spotify not authorized."}, 401
 
-    current_playback_info = get_current_playback_info(configuration.spotify.get_token())
+    current_playback_info = monitor.get_current_playback_info(configuration.spotify.get_token())
     if current_playback_info is None:
         return {"error": "Failed to get current playback from Spotify."}, 400
 
