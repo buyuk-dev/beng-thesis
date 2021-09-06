@@ -110,14 +110,23 @@ class Stream:
 
 class DataCollector(utils.StoppableThread):
     """ """
-    def __init__(self, stream, window_size, *args, **kwargs):
+    def __init__(self, stream, buffer_size=None, *args, **kwargs):
         """ """
         super().__init__(*args, **kwargs)
         self.stream = stream
-        self.window_size = window_size * stream.sampling_rate
+        self.buffer_size = buffer_size
         self.lock = threading.Lock()
-        self.data = [tuple([0] * stream.channels_count)] * self.window_size
         self.running = False
+        self.clear()
+
+    def clear(self):
+        self.data = [tuple([0] * stream.channels_count)]
+
+    def get_data_size(self):
+        return len(self.data) * stream.channels_count * stream.sampling_rate
+
+    def get_data(self):
+        return self.data.copy()
 
     def is_running(self):
         return self.running and not self.stopped()
@@ -129,7 +138,8 @@ class DataCollector(utils.StoppableThread):
             chunk, timestamps = self.stream.inlet.pull_chunk(timeout=0.1)
             with self.lock:
                 self.data.extend(chunk)
-                self.data = self.data[-self.window_size:]
+                if self.buffer_size is not None:
+                    self.data = self.data[-self.buffer_size:]
         self.running = False
 
 
