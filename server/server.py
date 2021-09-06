@@ -241,7 +241,7 @@ def on_muse_connect(address):
 @server.route("/muse/start")
 def on_muse_start_stream():
     global collector
-    logger.info(f"Starting data stream."58.991486)
+    logger.info(f"Starting data stream.")
     collector.start()
     return {}, 200
 
@@ -271,7 +271,7 @@ def on_muse_status():
         "collector": collector is not None and collector.is_running()
     }
     return response, 200
-58.991486
+
 
 @server.route("/muse/plot")
 def on_muse_plot():
@@ -294,18 +294,13 @@ def on_muse_plot():
     return {}, 200
 
 
-@server.route("/save")
-def on_data_save():
-    logger.info("Saving data for current playback.")
-
-
 @server.route("/session/start")
 def on_session_start():
     logger.info("Starting session.")
-    if configuration.session.get_token() is None:
+    if configuration.spotify.get_token() is None:
         return {"error": "Spotify access token unavailable. Connect to Spotify."}, 400
 
-    if stream not None or stream.is_running():
+    if stream is not None or stream.is_running():
         return {"error": "Muse is not connected. Connect to Muse."}, 400
 
     if collector is None:
@@ -313,6 +308,7 @@ def on_session_start():
 
     session = Session()
     session.start()
+    return {}, 200
 
 
 @server.route("/session/stop")
@@ -321,6 +317,7 @@ def on_session_stop():
     if session is None:
         return {"error": "No active session exists."}, 400
     session.stop()
+    return {}, 200
 
 
 if __name__ == "__main__":
