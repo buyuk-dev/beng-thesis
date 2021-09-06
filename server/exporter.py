@@ -1,3 +1,5 @@
+import os
+from datetime import datetime
 import json
 import base64
 import pickle
@@ -25,6 +27,10 @@ class DataFrame:
         return eeg.decode(self._encoding)
 
     def save(self, filename, format='json'):
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
         data = {
             "userid": self.userid,
             "playback": self.playback_info,
@@ -33,8 +39,17 @@ class DataFrame:
             "eeg": self.serialize_eeg()
         }
 
+        def datetime_jsonify(obj):
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            else:
+                raise TypeError(f"{type(obj)} is not JSON serializable.")
+
         with open(filename, "w") as output_file:
-            json.dump(data, output_file)
+            json.dump(
+                data,
+                output_file,
+                default=datetime_jsonify)
 
     def __str__(self):
         return "DataFrame object:\n" \
