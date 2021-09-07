@@ -8,8 +8,14 @@ import numpy as np
 import exporter
 
 
-
 def plot_data(df):
+    """ df:
+            timestamps: dictionary with 3 datetime objects under 'start', 'end', and 'labeling' keys.
+            eeg_data: 2d array of eeg signal.
+            playback_info: dictionary storing info about the spotify playback for which the signal was recorded.
+            userid: subject's user id.
+    """
+
     data = np.array(df.eeg_data)
     print(data.shape)
 
@@ -17,12 +23,39 @@ def plot_data(df):
     data = data.swapaxes(0, 1)
     print(data.shape)
 
-    # Plot each data channel on a separate subplots arranged one under the other.
+    start = df.timestamps['start']
+    end = df.timestamps['end']
+    labeling = df.timestamps['labeling']
+
+    print('timestamps')
+    print(f'start: {start} -> {start.timestamp()}')
+    print(f'labeling: {labeling} -> {labeling.timestamp()}')
+    print(f'end: {end} -> {end.timestamp()}')
+
+    plt.xlabel('Time (s)')
+    plt.ylabel('EEG Signal')
+    plt.title(f'EEG Signal for {df.userid}')
+
+    # Compute timestamps for each sample based on <start; end> range using linear interpolation.
+    start_timestamp = start.timestamp()
+    end_timestamp = end.timestamp()
+    labeling_timestamp = labeling.timestamp()
+    timestamps = np.linspace(start_timestamp, end_timestamp, data.shape[1])
+
+    # Plot each channel of a signal on separate subplot, using timestamps for x axis.
     for i in range(data.shape[0]):
-        plt.subplot(data.shape[0], 1, i+1)
-        plt.plot(data[i])
+        plt.subplot(data.shape[0], 1, i + 1)
+        plt.plot(timestamps - start_timestamp, data[i])
+
+        # Mark labeling timestamp using a vertical, red line.
+        plt.axvline(x=labeling_timestamp - start_timestamp, color='red')
+
+        # Add labels.
+        plt.xlabel('Time (s)')
+        plt.ylabel('Voltage (mA)')
 
     plt.show()
+
 
 
 if __name__ == '__main__':
