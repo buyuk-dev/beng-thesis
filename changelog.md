@@ -8,6 +8,11 @@ Versions will roughly correspond to git tags.
 
 The goal of this milestone will be to have a stable, ready-to-use version of a data collection app.
 
+### v0.2 [work in progress]
+
+In this version the goal is to make the app more stable and resistant to failures, by adding unit tests
+which are required since the app has reached the point where its difficult to keep track of everything,
+as well as refactoring in parallel with testing to make testing easier.
 
 ### v0.1
 
