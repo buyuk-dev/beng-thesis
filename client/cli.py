@@ -69,6 +69,11 @@ class SessionCommand:
     def on_stop(args):
         print(client.session_stop())
 
+    # Handle on_label command.
+    @staticmethod
+    def on_label(args):
+        print(client.session_label(args.label))
+
 
 if __name__ == '__main__':
 
@@ -132,6 +137,11 @@ if __name__ == '__main__':
 
     session_stop_parser = session_subparsers.add_parser("stop")
     session_stop_parser.set_defaults(command=SessionCommand.on_stop)
+
+    # Add label command to the session parser.
+    session_add_label_parser = session_subparsers.add_parser("label")
+    session_add_label_parser.set_defaults(command=SessionCommand.on_label)
+    session_add_label_parser.add_argument("label", choices=config["labels"])
 
     # Parse Commands
     args = parser.parse_args()
