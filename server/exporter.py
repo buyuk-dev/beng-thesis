@@ -68,6 +68,10 @@ class DataFrame:
         eeg = base64.b64decode(eeg)
         eeg = pickle.loads(eeg)
 
+        timestamps = data['timestamps']
+        for key in timestamps:
+            timestamps[key] = datetime.fromisoformat(timestamps[key])
+
         return cls(data['playback'], eeg, data['timestamps'], data['label'], data['userid'])
 
 
