@@ -325,6 +325,22 @@ def on_session_stop():
     return {}, 200
 
 
+@server.route("/session/label/<label>")
+def on_session_label(label):
+    """ This function does the same thing as on_mark() endpoint, but using a different url.
+        Additionally, if there is an active session it sets label for that session.
+    """
+    logger.info(f"Labeling current song in a session as {label}.")
+
+    global session
+    if session is None:
+        return {"error": "No active session exists."}, 400
+
+    session.set_label(label)
+    return {}, 200
+
+
+
 if __name__ == "__main__":
     server.run()
 
