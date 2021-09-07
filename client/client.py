@@ -69,3 +69,8 @@ def session_stop():
     r = requests.get(f"{HOST}/session/stop")
     code, response = r.status_code, r.json()
     return code, response
+
+def session_label(label):
+    r = requests.get(f"{HOST}/session/label/{label}")
+    code, response = r.status_code, r.json()
+    return code, response
