@@ -1,177 +1,117 @@
-# Notes on EEG processing with Muse EEG headset
+# Extracting User Preferences From Brain Signal Using Muse EEG
 
-## Lab Streaming Layer or LSL
+TODO: add project overview.
 
-is a system designed to unify the collection of time
-series data for research experiments. It has become standard in the field of
-EEG-based brain-computer interfaces for its ability to make seperate streams of
-data available on a network with time synchronization and near real-time
-access. For more information, check out this lecture from Modern Brain-Computer
-Interface Design or the LSL repository
+## Installation
 
-https://github.com/sccn/labstreaminglayer
-https://www.youtube.com/watch?v=Y1at7yrcFW0
+Currently official muse-lsl package doesn't support bleak backend, which it doesn't work
+on MacOS. There is however a fork of muse-lsl created by xloem, to which i'm contributing as well,
+which implements bleak backend. Bleak backend can also be used on all other platforms as well,
+and may replace other backends in the future muse-lsl development.
 
-
-## Interesting research papers
-
-https://www.nature.com/articles/s41598-020-75379-w
-https://www.researchgate.net/publication/338186731_Consumer_grade_EEG_Measuring_Sensors_as_Research_Tools_A_Review
-
-
-## Other online resources
-
-https://eegedu.com/
-
-
-## Dependencies for data collection app
-
-    sudo apt install python3 python3-pip tk-dev python3-tk
-    python3 -m pip install tk matplotlib
-
-
-## Installing MuseLSL python library
-
-note: currently running the project on macos requires installing customized version of muselsl
-      with bleak backend support from https://github.com/buyuk-dev/muse-lsl
-      It enables using muse-lsl without external dongle.
-
+The official version:
 https://github.com/alexandrebarachant/muse-lsl
-https://github.com/alexandrebarachant/muse-lsl/blob/master/examples/neurofeedback.py
+
+Fork with bleak backend:
+https://github.com/xloem/muse-lsl
+
+The following commands will install xloem muse-lsl:
+    
+    git clone git@github.com:xloem/muse-lsl.git
+    cd muse-lsl
+    python -m pip install -e .
+
+Additional requirements for this project can be installed using requirements.txt file in this repo:
+
+    python -m pip install  -f requirements.txt
+
+Currently I'm only supporting MacOS actively, I may add instructions for other systems in the future.
+
+## Setup
+
+Create a ./server/secret.py script and add the following entries:
+If you're on MacOS you don't need MUSE_MAC_ADDRESS entry, as MacOS uses UUIDs instead.
+Spotify API tokens can be acquired as described on [this page](https://developer.spotify.com/documentation/general/guides/app-settings/#register-your-app)
+ 
+    MUSE_MAC_ADDRESS="{YOUR MUSE MAC ADDRESS}"
+    MUSE_UUID_ADDRESS="{YOUR MUSE UUID ADDRESS}"
+    SPOTIFY_CLIENT_ID="{YOUR SPOTIFY API CLIENT_ID}"
+    SPOTIFY_CLIENT_SECRET="{YOUR SPOTIFY API CLIENT_SECRET}"
+
+Run configuration.py script to create ./server/config/ directory with default config files.
+
+    python configuration.py
+
+## Usage
+
+The app is split into server and client part. To run it, first start the server, than use client
+to control the session.
+
+### Server
+
+Run server with the following command:
+
+    python server.py
 
 
-    # on MacOS
-    brew install python-tk
+### Client
 
-    # on ubuntu
-    sudo apt-get install libglfw3-dev libgles2-mesa-dev      // If egl display config issue
-    sudo apt install libpcap-dev libpcap0.8 libpcap0.8-dev
-    sudo apt install python3-tk
-    sudo apt install python3-vispy
+Client is run using cli.py script, which has the following options:
 
-    # common
-    pip install muselsl
-    pip install pygatt==3.1.1
-    pip install mne
+    python cli.py [-h] {config,spotify,muse,session} ...
 
+    positional arguments:
+      {config,spotify,muse,session}
 
-## MuseLSL command line client usage
+    optional arguments:
+      -h, --help            show this help message and exit
 
-    muselsl list
-    muselsl stream
-    muselsl stream --name Muse-7E45             // For some reason auto discovery of visible Muse devices didnt work for me.
-    muselsl stream -a "00:55:DA:B5:7E:45"
+Session command can be used like:
 
-    muselsl view
-    muselsl view --version 2                    // if segfault without --version
-    muselsl view --version 2 --window 10
+    python cli.py session [-h] {start,stop,label} ...
 
-## Muse usage:
+    positional arguments:
+      {start,stop,label}
 
-https://hackaday.io/project/162169-muse-eeg-headset-making-extra-electrode
+    optional arguments:
+      -h, --help          show this help message and exit
 
-In case bluetooth refuses to turn on after attempted restart:
+Spotify command can be used like:
 
-    sudo rmmod btusb && sudo modprobe btusb && sudo rfkill unblock
+    python cli.py spotify [-h] {connect,playback,mark} ...
 
+    positional arguments:
+      {connect,playback,mark}
 
-### Muse LSL stream info in xml format (StreamInlet info as xml)
+    optional arguments:
+      -h, --help            show this help message and exit
 
-    <?xml version="1.0"?>
-    <info>
-        <name>Muse</name>
-        <type>EEG</type>
-        <channel_count>5</channel_count>
-        <nominal_srate>256</nominal_srate>
-        <channel_format>float32</channel_format>
-        <source_id>Muse00:55:DA:B5:7E:45</source_id>
-        <version>1.1000000000000001</version>
-        <created_at>19359.296126331999</created_at>
-        <uid>0f337a34-37d6-4cd2-acba-278dddd9a507</uid>
-        <session_id>default</session_id>
-        <hostname>avdevbox</hostname>
-        <v4address />
-        <v4data_port>16572</v4data_port>
-        <v4service_port>16572</v4service_port>
-        <v6address />
-        <v6data_port>16573</v6data_port>
-        <v6service_port>16573</v6service_port>
-        <desc>
-            <manufacturer>Muse</manufacturer>
-            <channels>
-                <channel>
-                    <label>TP9</label>
-                    <unit>microvolts</unit>
-                    <type>EEG</type>
-                </channel>
-                <channel>
-                    <label>AF7</label>
-                    <unit>microvolts</unit>
-                    <type>EEG</type>
-                </channel>
-                <channel>
-                    <label>AF8</label>
-                    <unit>microvolts</unit>
-                    <type>EEG</type>
-                </channel>
-                <channel>
-                    <label>TP10</label>
-                    <unit>microvolts</unit>
-                    <type>EEG</type>
-                </channel>
-                <channel>
-                    <label>Right AUX</label>
-                    <unit>microvolts</unit>
-                    <type>EEG</type>
-                </channel>
-            </channels>
-        </desc>
-    </info>
+Muse command can be used like:
 
-## EEG Processing
+    python cli.py muse [-h] {connect,disconnect,start,stop,plot} ...
 
-The electrical potential accross the cell membrane is small, around -70 mV at rest (1000 microvolts in a millivolt), and it changes around -20 mV during electrical changes in the cell.
+    positional arguments:
+      {connect,disconnect,start,stop,plot}
 
-If a large group of these tiny dipoles are aligned in space and their electrical potentials change at the same time, they can create electrical potentials which are large enough to conduct through the brain tissue and be measurable comparing different points on the head.
+    optional arguments:
+      -h, --help            show this help message and exit
 
-Electrical potentials measured on the outside of the head fluctuature between about -200 and 200 μV. You can also see cycles between high and low voltage, called oscillations, which can occur in the human brain at a number of frequencies.
+Config command can be used like:
 
-Fluctuations in activity of large groups of neurons seem to occur within certain frequency bands. It is thought that these frequencies are one of the ways the brain uses to process information. These oscillations can change during different behaviours, most notably when we are awake vs when we sleep.
+    python cli.py config [-h] {show,update} ...
 
-Awake state - High frequency Beta waves.
-Sleep state - Larger groups of neurons all fire together at low frequencies called Delta waves.
+    positional arguments:
+      {show,update}
 
-We use the power of those brain waves (Beta, Delta, and others) to provide neurofeedback or create simple BCI (Brain-Computer Interfaces).
+    optional arguments:
+      -h, --help     show this help message and exit
 
-Scalp and skull diffuse the electrical signal from the brain, so measurements performed outside contain very little spatial information about the signal's source. Additionally, each extracranial measurement could be caused by many different configurations of dipoles inside the brain.
+In general session setup looks like this:
 
-EEG electrodes locations are standarized in a regular grid covering the surface of the head.
-Each location is designated by a code:
-- letter indicating the location of the head (F-Frontal; C-Central; P-Parietal; T-Temporal; O-Occipital; Fp-Fronto-polar).
-- The suffix has a 'z' if along the midline, odd numbers over the left hemisphere, and even over the right.
-- Numbers start along the midline and get larger for more lateral sites on the head.
+    python cli.py muse connect
+    python cli.py spotify connect
+    // Wait until Muse is connected
+    python cli.py muse start
+    python cli.py session start
 
-Can location of reference electrode affect the signal quality?
-How about using multiple reference electrodes?
-What if we used each electrode as a reference for all others creating a fully connected graph of electrodes/reference electrodes?
-Would more reference electrodes yield more spatial information about the signal source?
-
-
-## Introduction to Modern Brain-Computer Interface Design
-
-Notes from youtube recordings of Christian A. Kothe from Swartz Center for Computational Neuroscience, University of California San Diego.
-
-https://www.youtube.com/watch?v=Wlwvgm3AHvc&list=PLbbCsk7MUIGcO_lZMbyymWU2UezVHNaMq
-
-
-### 1. What is a BCI
-
-"A system which takes a biosignal measured from a person and predicts some aspect of the person's mental state."
-
-1. Active BCI vs Reactive BCI
-
-Active relates to the user controlling consciously its state in order to trigger an effect in the application.
-Reactive means that the system observers users reaction to some external event.
-
-
-
+A script `client/start_session.sh` does this automatically.
