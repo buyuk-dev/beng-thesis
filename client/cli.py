@@ -50,10 +50,6 @@ class MuseCommand:
     def on_stop(args):
         print(client.stop_muse_data_collection())
 
-    @staticmethod
-    def on_plot(args):
-        raise NotImplementedError()
-
 
 class SessionCommand:
 
@@ -115,9 +111,6 @@ if __name__ == '__main__':
 
     muse_stop_parser = muse_subparsers.add_parser("stop")
     muse_stop_parser.set_defaults(command=MuseCommand.on_stop)
-
-    muse_plot_parser = muse_subparsers.add_parser("plot")
-    muse_plot_parser.set_defaults(command=MuseCommand.on_plot)
 
     # Session Commands Parser
     session_parser = subparsers.add_parser("session")

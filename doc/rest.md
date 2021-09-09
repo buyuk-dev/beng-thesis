@@ -185,29 +185,6 @@ Responses:
     }
 
 
-### /muse/plot
-
-DEPRECATED, will be removed in the future versions.
-
-Shows real time Muse EEG signal plot. Blocks until plot is closed.
-It is better to view the signal using other means, like `muselsl view` command.
-
-Responses:
-
-1. LSL stream not connected.
-
-    HTTP 400
-    {
-        "error": "Data collector is not set."
-    }
-
-2. Success (after closing the matplotlib window)
-
-    HTTP 200
-    {
-    }
-
-
 ## Session
 
 ### /session/start

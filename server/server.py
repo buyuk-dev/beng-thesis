@@ -252,27 +252,6 @@ def on_muse_status():
     return response, 200
 
 
-@server.route("/muse/plot")
-def on_muse_plot():
-    """ This probably doesnt make much sense... """
-    global stream
-    global collector
-    logger.info(f"Plotting muse data.")
-
-    if collector is None:
-        return {"error": "Data collector is not set."}, 400
-
-    def data_source():
-        global collector
-        with collector.lock:
-            return collector.data.copy()
-
-    plotter = muse.SignalPlotter(stream.channels, data_source)
-    plotter.show()
-
-    return {}, 200
-
-
 @server.route("/session/start")
 def on_session_start():
     logger.info("Starting session.")
