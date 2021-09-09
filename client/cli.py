@@ -31,10 +31,6 @@ class SpotifyCommand:
     def on_status_request(args):
         print(client.spotify_status())
 
-    @staticmethod
-    def on_mark_current_song(args):
-        print(client.mark_current_song(args.label))
-
 
 class MuseCommand:
 
@@ -69,7 +65,6 @@ class SessionCommand:
     def on_stop(args):
         print(client.session_stop())
 
-    # Handle on_label command.
     @staticmethod
     def on_label(args):
         print(client.session_label(args.label))
@@ -104,10 +99,6 @@ if __name__ == '__main__':
 
     spotify_playback_parser = spotify_subparsers.add_parser("playback")
     spotify_playback_parser.set_defaults(command=SpotifyCommand.on_playback_request)
-
-    spotify_mark_parser = spotify_subparsers.add_parser("mark")
-    spotify_mark_parser.set_defaults(command=SpotifyCommand.on_mark_current_song)
-    spotify_mark_parser.add_argument("label", choices=config["labels"])
 
     # Muse Commands Parser
     muse_parser = subparsers.add_parser("muse")

@@ -25,11 +25,6 @@ def spotify_status():
     code, response = r.status_code, r.json()
     return code, response
 
-def mark_current_song(label):
-    r = requests.get(f"{HOST}/mark/{label}")
-    code, response = r.status_code, r.json()
-    return code, response
-
 def connect_muse(address):
     r = requests.get(f"{HOST}/muse/connect/{address}")
     code, response = r.status_code, r.json()

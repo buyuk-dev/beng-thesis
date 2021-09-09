@@ -178,33 +178,6 @@ def spotify_auth_callback():
     return {}, 200
 
 
-@server.route("/mark/<value>")
-def on_mark_song_command(value):
-    logger.info(f"Marking song as {value}.")
-    if value not in configuration.app.get_labels_to_playlists_map():
-        logger.error(f"Invalid mark value: {value}.")
-        return {"error": f"Invalid mark: {value}."}, 400
-
-    current_playback_info = get_current_playback_info(configuration.spotify.get_token())
-    if current_playback_info is None:
-        return {"error": f"Failed to get current playback from Spotify."}, 400
-
-    playlist_name = configuration.app.get_labels_to_playlists_map()[value]
-    playlist = configuration.spotify.get_playlists()[playlist_name]
-
-    logger.debug(f"Adding current track {current_playback_info['song']} to {playlist_name}.")
-    code, resp = spotify.api.add_item_to_playlist(
-        configuration.get_token(),
-        playlist["id"],
-        current_playback_info["uri"]
-    )
-
-    if code != 200:
-        return {"error": resp}, code
-
-    return {}, 200
-
-
 @server.route("/muse/connect/<address>")
 def on_muse_connect(address):
     global stream

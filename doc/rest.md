@@ -282,13 +282,3 @@ Responses:
     {
         "error": "No active session exists."
     }
-
-
-## Other
-
-### /mark/<value>
-
-DEPRECATED, will be removed in the future versions.
-
-Labels current song as
-Session commands should be used instead.
