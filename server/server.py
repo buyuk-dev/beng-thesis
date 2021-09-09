@@ -1,18 +1,3 @@
-""" Usage:
-    0. GET /system/config/<userid> --> get app settings
-    1. POST /system/config/<userid> --> update app settings
-    2. GET /spotify/connect --> spotify callback at /callback
-    3. GET /mark/<MARK_TO_PLAYLIST_NAME> --> label current playback
-    4. GET /muse/connect/<address> --> connect muse device and start LSL stream
-    5. GET /muse/start --> start collecting Muse data
-    6. GET /muse/stop --> stop collecting Muse data
-    7. GET /muse/disconnect --> disconnect Muse device
-    8. GET /muse/plot --> display real-time plot of muse data
-    9. GET /spotify/status --> get spotify connection status
-    10. GET /spotify/playback --> get current playback info
-    11. GET /muse/status --> get muse stream and data collection status
-"""
-
 import os
 import sys
 import flask
@@ -36,7 +21,6 @@ server = flask.Flask("EegDataCollectionServer")
 server.debug = True
 
 
-# TODO: Remove global state.
 stream = None
 collector = None
 session = None
@@ -152,7 +136,7 @@ def on_spotify_playback():
 
     current_playback_info = monitor.get_current_playback_info(configuration.spotify.get_token())
     if current_playback_info is None:
-        return {"error": "Failed to get current playback from Spotify."}, 400
+        return {"error": "Failed to get current playback info from Spotify."}, 400
 
     return current_playback_info, 200
 
@@ -242,35 +226,56 @@ def on_muse_connect(address):
 @server.route("/muse/start")
 def on_muse_start_stream():
     global collector
+
+    if collector is None:
+        logger.error("There is no active LSL stream.")
+        return {"error": "Muse needs to be connected before streaming is possible."}, 400
+
     logger.info(f"Starting data stream.")
     collector.start()
+
     return {}, 200
 
 
 @server.route("/muse/stop")
 def on_muse_stop_stream():
     global collector
+
+    if collector is None:
+        logger.error("There is no active LSL stream.")
+        return {"error": "Muse is not connected."}, 400
+
     logger.info("Stopping data collection.")
     collector.stop()
+
     return {}, 200
 
 
 @server.route("/muse/disconnect")
 def on_muse_disconnect():
     global stream
+
+    if stream is None:
+        logger.error("There is no active LSL stream.")
+        return {"error": "Muse is not connected."}, 400
+
     logger.info(f"Disconnecting muse device.")
     stream.stop()
+
     return {}, 200
 
 
 @server.route("/muse/status")
 def on_muse_status():
-    logger.info(f"Requesting muse device status.")
     global stream
+    global collector
+
+    logger.info(f"Requesting muse device status.")
     response = {
         "stream": stream is not None and stream.is_running(),
         "collector": collector is not None and collector.is_running()
     }
+
     return response, 200
 
 
