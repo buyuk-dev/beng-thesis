@@ -14,6 +14,8 @@ In this version the goal is to make the app more stable and resistant to failure
 which are required since the app has reached the point where its difficult to keep track of everything,
 as well as refactoring in parallel with testing to make testing easier.
 
+    1. Removed /mark/<label> and /muse/plot commands from the app.
+
 ### v0.1
 
 This version marks the point where it is possible to use the app, through the command line interface
