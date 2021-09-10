@@ -11,8 +11,7 @@ import configuration
 
 
 def _add_item_to_eeg_playlist(item, label):
-    """ Add playback item to the playlist corresponding to the given label.
-    """
+    """Add playback item to the playlist corresponding to the given label."""
     playlists_map = configuration.app.get_labels_to_playlists_map()
 
     if label not in playlists_map:
@@ -24,9 +23,7 @@ def _add_item_to_eeg_playlist(item, label):
 
     logger.debug(f"Adding track {item['song']} to playlist {playlist_name}")
     code, resp = spotify.api.add_item_to_playlist(
-        configuration.spotify.get_token(),
-        playlist["id"],
-        item["uri"]
+        configuration.spotify.get_token(), playlist["id"], item["uri"]
     )
 
     if code not in [200, 201]:
@@ -37,7 +34,6 @@ def _add_item_to_eeg_playlist(item, label):
 
 
 class Session:
-
     def __init__(self, collector):
         self.monitor = monitor.PlaybackMonitor(
             lambda old, new, ts: self.on_playback_change(old, new, ts)
@@ -48,16 +44,12 @@ class Session:
 
     def reset(self):
         self.collector.clear()
-        self.markers = {
-            "start": None,
-            "end": None,
-            "labeling": None
-        }
+        self.markers = {"start": None, "end": None, "labeling": None}
 
     def on_playback_change(self, old, new, timestamp):
-        """ TODO: Move logic detecting type of change inside the monitor,
-                  and replace current callback with different ones for
-                  specific change types.
+        """TODO: Move logic detecting type of change inside the monitor,
+        and replace current callback with different ones for
+        specific change types.
         """
         logger.info(f"Playback change detected at {timestamp}")
         if old is None:
@@ -80,7 +72,9 @@ class Session:
         logger.info("New playback item.")
         self.markers["end"] = timestamp
         df = self._build_data_frame(old)
-        path = os.path.join(configuration.app.get_session_data_dir(), f"{timestamp}.json")
+        path = os.path.join(
+            configuration.app.get_session_data_dir(), f"{timestamp}.json"
+        )
         df.save(path)
         self.reset()
         self.markers["start"] = timestamp
@@ -102,6 +96,5 @@ class Session:
             self.collector.get_data(),
             self.markers,
             self.label,
-            self.userid
+            self.userid,
         )
-

@@ -3,6 +3,7 @@ import threading
 
 class StoppableThread(threading.Thread):
     """ """
+
     def __init__(self, *args, **kwargs):
         """ """
         super().__init__(*args, **kwargs)
@@ -15,4 +16,3 @@ class StoppableThread(threading.Thread):
     def stopped(self):
         """ """
         return self._stop_event.is_set()
-

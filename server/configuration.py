@@ -38,7 +38,6 @@ def _get_config_path(filename, check_if_exists=True):
 
 
 class Spotify:
-
     def __init__(self):
         self.set_client_id(None)
         self.set_client_secret(None)
@@ -85,32 +84,31 @@ class Spotify:
 
     @classmethod
     def load(cls, filename):
-        """ Load Spotify config from JSON file """
+        """Load Spotify config from JSON file"""
         with open(filename) as f:
             data = json.load(f)
             spotify = cls()
-            spotify.set_client_id(data['client_id'])
-            spotify.set_client_secret(data['client_secret'])
-            spotify.set_callback_url(data['callback_url'])
-            spotify.set_playlists(data['playlists'])
-            spotify.set_user_id(data['user_id'])
+            spotify.set_client_id(data["client_id"])
+            spotify.set_client_secret(data["client_secret"])
+            spotify.set_callback_url(data["callback_url"])
+            spotify.set_playlists(data["playlists"])
+            spotify.set_user_id(data["user_id"])
             return spotify
 
     def save(self, filename):
-        """ Save Spotify config to JSON file """
-        with open(filename, 'w') as f:
+        """Save Spotify config to JSON file"""
+        with open(filename, "w") as f:
             data = {
-                'client_id': self.get_client_id(),
-                'client_secret': self.get_client_secret(),
-                'callback_url': self.get_callback_url(),
-                'playlists': self.get_playlists(),
-                'user_id': self.get_user_id()
+                "client_id": self.get_client_id(),
+                "client_secret": self.get_client_secret(),
+                "callback_url": self.get_callback_url(),
+                "playlists": self.get_playlists(),
+                "user_id": self.get_user_id(),
             }
             json.dump(data, f, indent=4)
 
 
 class Muse:
-
     def __init__(self):
         self.set_name(None)
         self.set_address(None)
@@ -129,26 +127,25 @@ class Muse:
 
     @classmethod
     def load(cls, filename):
-        """ Load Muse config from JSON file """
+        """Load Muse config from JSON file"""
         with open(filename) as f:
             data = json.load(f)
             muse = cls()
-            muse.set_name(data['name'])
-            muse.set_address(data['address'])
+            muse.set_name(data["name"])
+            muse.set_address(data["address"])
             return muse
 
     def save(self, filename):
-        """ Save Muse config to JSON file """
-        with open(filename, 'w') as f:
+        """Save Muse config to JSON file"""
+        with open(filename, "w") as f:
             data = {
-                'name': self.get_name(),
-                'address': self.get_address(),
+                "name": self.get_name(),
+                "address": self.get_address(),
             }
             json.dump(data, f)
 
 
 class App:
-
     def __init__(self):
         self.set_labels_to_playlists_map(None)
         self.set_session_data_dir(None)
@@ -167,20 +164,20 @@ class App:
 
     @classmethod
     def load(cls, filename):
-        """ Load App config from JSON file """
+        """Load App config from JSON file"""
         with open(filename) as f:
             data = json.load(f)
             app = cls()
-            app.set_labels_to_playlists_map(data['labels_to_playlists_map'])
+            app.set_labels_to_playlists_map(data["labels_to_playlists_map"])
             app.set_session_data_dir(data["session_data_dir"])
             return app
 
     def save(self, filename):
-        """ Save App config to JSON file """
-        with open(filename, 'w') as f:
+        """Save App config to JSON file"""
+        with open(filename, "w") as f:
             data = {
-                'labels_to_playlists_map': self.get_labels_to_playlists_map(),
-                'session_data_dir': self.get_session_data_dir()
+                "labels_to_playlists_map": self.get_labels_to_playlists_map(),
+                "session_data_dir": self.get_session_data_dir(),
             }
             json.dump(data, f)
 
@@ -205,11 +202,9 @@ def reset_configuration():
     muse.save(_get_config_path("muse.json", False))
 
     app = App()
-    app.set_labels_to_playlists_map({
-        "like": "EEG-Liked",
-        "dislike": "EEG-Disliked",
-        "meh": "EEG-Meh"
-    })
+    app.set_labels_to_playlists_map(
+        {"like": "EEG-Liked", "dislike": "EEG-Disliked", "meh": "EEG-Meh"}
+    )
     app.set_session_data_dir("data")
     app.save(_get_config_path("app.json", False))
 
@@ -229,9 +224,7 @@ def get_config_view(userid):
     global muse
     global app
 
-    config_view = {
-        "labels": list(app.get_labels_to_playlists_map().keys())
-    }
+    config_view = {"labels": list(app.get_labels_to_playlists_map().keys())}
     return config_view
 
 
@@ -239,11 +232,12 @@ def update_config(userid, partial_config_json):
     global spotify
     global muse
     global app
-    logger.warning("Config update requested, but currently user isn't allowed to change any settings.")
+    logger.warning(
+        "Config update requested, but currently user isn't allowed to change any settings."
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     reset_configuration()
 else:
     load_configuration()
-

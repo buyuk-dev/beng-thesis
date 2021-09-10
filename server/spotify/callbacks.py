@@ -19,9 +19,9 @@ class SocketListener(threading.Thread):
     NUMBER_OF_BYTES_TO_READ = 512
 
     def __init__(self, on_callback, callback_url, *args, **kwargs):
-        """ Create callback listener using sockets.
-            @param on_callback: function that takes authorization code passed by spotify api in callback query parameters.
-            @param address: socket address on which callback hsould be set. Needs to be registered in the spotify developer project settings.
+        """Create callback listener using sockets.
+        @param on_callback: function that takes authorization code passed by spotify api in callback query parameters.
+        @param address: socket address on which callback hsould be set. Needs to be registered in the spotify developer project settings.
         """
         super().__init__(*args, **kwargs)
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -29,13 +29,12 @@ class SocketListener(threading.Thread):
 
         self.on_callback = on_callback
 
-        url = urlparse(callback_url) 
+        url = urlparse(callback_url)
         self.host, self.port = url.netloc.split(":")
         self.port = int(self.port)
 
     def receive_callback(self):
-        """ Waits for callback request from spotify api and returns its header.
-        """
+        """Waits for callback request from spotify api and returns its header."""
         self.s.bind((self.host, self.port))
         self.s.listen(1)
         client, address = self.s.accept()
@@ -44,8 +43,7 @@ class SocketListener(threading.Thread):
         return request
 
     def parse_query(self, request):
-        """ Extract dict of {key: value} pairs from query.
-        """
+        """Extract dict of {key: value} pairs from query."""
         idx = request.find("HTTP")
         request = request[:idx]
         query = request.strip().split("?")[-1]
@@ -57,11 +55,9 @@ class SocketListener(threading.Thread):
             args[name] = value
 
         return args
-       
+
     def run(self):
-        """ Listen for callback from spotify with auth code. After it arrives parse and request access token.
-        """
+        """Listen for callback from spotify with auth code. After it arrives parse and request access token."""
         request = self.receive_callback()
         params = self.parse_query(request)
         self.on_callback(params["code"])
-

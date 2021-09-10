@@ -13,7 +13,6 @@ import utils
 
 
 class StreamConnector:
-
     def __init__(self, stream, max_chunklen=30):
         self.stream = stream
         self.max_chunklen = max_chunklen
@@ -34,7 +33,7 @@ class StreamConnector:
 
     @staticmethod
     def find():
-        streams = pylsl.resolve_byprop('type', 'EEG', timeout=30)
+        streams = pylsl.resolve_byprop("type", "EEG", timeout=30)
         if len(streams) == 0:
             logger.error("No active streams have been found.")
             return None
@@ -48,18 +47,18 @@ class StreamConnector:
 
 
 def Stream_stream_process(address):
-    """ needs to be a global scope, importable object due to pickling
-        done in multiprocessing.
+    """needs to be a global scope, importable object due to pickling
+    done in multiprocessing.
     """
     muselsl.stream(address=address, backend="bleak")
 
 
 class Stream:
-    """ Wrapper to the muselsl.Stream class that enables stream termination.
-    """
+    """Wrapper to the muselsl.Stream class that enables stream termination."""
+
     def __init__(self, muse_mac_address):
         """ """
-        logger.info('New stream created for {muse_mac_address}')
+        logger.info("New stream created for {muse_mac_address}")
         self.muse_mac_address = muse_mac_address
         self.running = False
         self.process = None
@@ -75,8 +74,7 @@ class Stream:
         logger.info("Start lsl stream.")
 
         self.process = multiprocessing.Process(
-            target=Stream_stream_process,
-            args=(self.muse_mac_address,)
+            target=Stream_stream_process, args=(self.muse_mac_address,)
         )
         self.process.start()
 
@@ -94,8 +92,10 @@ class Stream:
         return True
 
     def is_running(self):
-        if not self.running: return False
-        elif self.process is None: return False
+        if not self.running:
+            return False
+        elif self.process is None:
+            return False
         return self.process.is_alive()
 
     def stop(self):
@@ -110,6 +110,7 @@ class Stream:
 
 class DataCollector(utils.StoppableThread):
     """ """
+
     def __init__(self, stream, buffer_size=None, *args, **kwargs):
         """ """
         super().__init__(*args, **kwargs)
@@ -141,13 +142,14 @@ class DataCollector(utils.StoppableThread):
                 self.data.extend(chunk)
                 self.timestamps.extend(timestamps)
                 if self.buffer_size is not None:
-                    self.data = self.data[-self.buffer_size:]
-                    self.timestamps = self.timestamps[-self.buffer_size:]
+                    self.data = self.data[-self.buffer_size :]
+                    self.timestamps = self.timestamps[-self.buffer_size :]
         self.running = False
 
 
 class SignalPlotter:
     """ """
+
     def __init__(self, channels, data_source):
         """ """
         self.channel_names = channels
@@ -179,10 +181,7 @@ class SignalPlotter:
 
         data = self.data_source()
 
-        data_channels = [
-            [d[i] for d in data]
-            for i in range(self.nchannels)
-        ]
+        data_channels = [[d[i] for d in data] for i in range(self.nchannels)]
 
         for n, ax in enumerate(self.axs):
             ax.set_title(self.channel_names[n])
@@ -196,7 +195,7 @@ class SignalPlotter:
         pyplot.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     stream = Stream(configuration.muse.get_address())
     stream.start()

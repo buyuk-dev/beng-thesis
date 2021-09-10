@@ -9,11 +9,11 @@ import exporter
 
 
 def plot_data(df):
-    """ df:
-            timestamps: dictionary with 3 datetime objects under 'start', 'end', and 'labeling' keys.
-            eeg_data: 2d array of eeg signal.
-            playback_info: dictionary storing info about the spotify playback for which the signal was recorded.
-            userid: subject's user id.
+    """df:
+    timestamps: dictionary with 3 datetime objects under 'start', 'end', and 'labeling' keys.
+    eeg_data: 2d array of eeg signal.
+    playback_info: dictionary storing info about the spotify playback for which the signal was recorded.
+    userid: subject's user id.
     """
 
     data = np.array(df.eeg_data)
@@ -23,18 +23,18 @@ def plot_data(df):
     data = data.swapaxes(0, 1)
     print(data.shape)
 
-    start = df.timestamps['start']
-    end = df.timestamps['end']
-    labeling = df.timestamps['labeling']
+    start = df.timestamps["start"]
+    end = df.timestamps["end"]
+    labeling = df.timestamps["labeling"]
 
-    print('timestamps')
-    print(f'start: {start} -> {start.timestamp()}')
-    print(f'labeling: {labeling} -> {labeling.timestamp()}')
-    print(f'end: {end} -> {end.timestamp()}')
+    print("timestamps")
+    print(f"start: {start} -> {start.timestamp()}")
+    print(f"labeling: {labeling} -> {labeling.timestamp()}")
+    print(f"end: {end} -> {end.timestamp()}")
 
-    plt.xlabel('Time (s)')
-    plt.ylabel('EEG Signal')
-    plt.title(f'EEG Signal for {df.userid}')
+    plt.xlabel("Time (s)")
+    plt.ylabel("EEG Signal")
+    plt.title(f"EEG Signal for {df.userid}")
 
     # Compute timestamps for each sample based on <start; end> range using linear interpolation.
     start_timestamp = start.timestamp()
@@ -48,17 +48,16 @@ def plot_data(df):
         plt.plot(timestamps - start_timestamp, data[i])
 
         # Mark labeling timestamp using a vertical, red line.
-        plt.axvline(x=labeling_timestamp - start_timestamp, color='red')
+        plt.axvline(x=labeling_timestamp - start_timestamp, color="red")
 
         # Add labels.
-        plt.xlabel('Time (s)')
-        plt.ylabel('Voltage (mA)')
+        plt.xlabel("Time (s)")
+        plt.ylabel("Voltage (mA)")
 
     plt.show()
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("path")
@@ -70,4 +69,3 @@ if __name__ == '__main__':
 
     df = exporter.DataFrame.load(args.path)
     plot_data(df)
-
