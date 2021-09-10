@@ -4,8 +4,8 @@ from logger import logger
 import client
 import pprint
 
-class ConfigCommand:
 
+class ConfigCommand:
     @staticmethod
     def on_config_request(args):
         userid = 0
@@ -18,7 +18,6 @@ class ConfigCommand:
 
 
 class SpotifyCommand:
-
     @staticmethod
     def on_connect(args):
         print(client.connect_spotify())
@@ -33,7 +32,6 @@ class SpotifyCommand:
 
 
 class MuseCommand:
-
     @staticmethod
     def on_connect(args):
         print(client.connect_muse("address"))
@@ -52,7 +50,6 @@ class MuseCommand:
 
 
 class SessionCommand:
-
     @staticmethod
     def on_start(args):
         print(client.session_start())
@@ -66,7 +63,7 @@ class SessionCommand:
         print(client.session_label(args.label))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog="bci")
     subparsers = parser.add_subparsers()

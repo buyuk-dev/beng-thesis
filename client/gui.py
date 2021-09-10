@@ -4,6 +4,7 @@
 
 import tkinter as tk
 import matplotlib
+
 matplotlib.use("TkAgg")
 
 import threading
@@ -20,8 +21,7 @@ import client
 
 
 class GuiApp(tk.Tk):
-    """
-    """
+    """ """
 
     PERIODIC_UPDATE_INTERVAL = 1000
     GRAPH_ANIMATION_INTERVAL = 1000
@@ -36,13 +36,13 @@ class GuiApp(tk.Tk):
             client.connect_muse("address")
 
         def on_start_recording():
-            self.start_recording.configure(state='disabled')
-            self.stop_recording.configure(state='normal')
+            self.start_recording.configure(state="disabled")
+            self.stop_recording.configure(state="normal")
             client.start_muse_data_collection()
 
         def on_stop_recording():
-            self.stop_recording.configure(state='disabled')
-            self.start_recording.configure(state='normal')
+            self.stop_recording.configure(state="disabled")
+            self.start_recording.configure(state="normal")
             client.stop_muse_data_collection()
 
         def on_app_close():
@@ -52,7 +52,7 @@ class GuiApp(tk.Tk):
             logger.info("User likes current song.")
             client.mark_current_song("like")
 
-        def on_dislike(): 
+        def on_dislike():
             logger.info("User dislikes current song.")
             client.mark_current_song("dislike")
 
@@ -67,16 +67,27 @@ class GuiApp(tk.Tk):
         self.app_frame = tk.Frame(self)
         self.app_frame.pack()
 
-        self.start_recording = tk.Button(self.app_frame, text="Record", command=on_start_recording)
+        self.start_recording = tk.Button(
+            self.app_frame, text="Record", command=on_start_recording
+        )
         self.start_recording.pack(side=tk.LEFT)
 
-        self.stop_recording = tk.Button(self.app_frame, text="Stop recording", command=on_stop_recording, state='disabled')
+        self.stop_recording = tk.Button(
+            self.app_frame,
+            text="Stop recording",
+            command=on_stop_recording,
+            state="disabled",
+        )
         self.stop_recording.pack(side=tk.LEFT)
 
-        self.connect_to_spotify = tk.Button(self.app_frame, text="Connect Spotify", command=on_connect_to_spotify)
+        self.connect_to_spotify = tk.Button(
+            self.app_frame, text="Connect Spotify", command=on_connect_to_spotify
+        )
         self.connect_to_spotify.pack(side=tk.LEFT)
 
-        self.connect_muse = tk.Button(self.app_frame, text="Connect Muse", command=on_connect_muse)
+        self.connect_muse = tk.Button(
+            self.app_frame, text="Connect Muse", command=on_connect_muse
+        )
         self.connect_muse.pack(side=tk.LEFT)
 
         # Control Frame
@@ -114,7 +125,6 @@ class GuiApp(tk.Tk):
         self.after(self.PERIODIC_UPDATE_INTERVAL, self.periodic_update)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = GuiApp()
     app.mainloop()
-
