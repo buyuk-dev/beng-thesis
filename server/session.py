@@ -1,8 +1,10 @@
+""" 2021 Created by michal@buyuk-dev.com
+"""
+
 import os
 from datetime import datetime
 
 from logger import logger
-
 import monitor
 import exporter
 
@@ -34,16 +36,21 @@ def _add_item_to_eeg_playlist(item, label):
 
 
 class Session:
+    """Data collection session."""
+
     def __init__(self, collector):
+        """Initialize session."""
         self.monitor = monitor.PlaybackMonitor(
             lambda old, new, ts: self.on_playback_change(old, new, ts)
         )
         self.collector = collector
-        self.init_new_item()
+        self.reset()
         self.userid = 0
 
     def reset(self):
+        """Reset Collected data."""
         self.collector.clear()
+        self.label = None
         self.markers = {"start": None, "end": None, "labeling": None}
 
     def on_playback_change(self, old, new, timestamp):
@@ -59,38 +66,46 @@ class Session:
         else:
             self.on_playback_next(old, new, timestamp)
 
-    def on_playback_started(self, playback_info, timestamp):
+    def on_playback_started(self, _playback_info, timestamp):
+        """Callback triggered when playback starts."""
         logger.info("Playback has started.")
         self.reset()
         self.markers["start"] = timestamp
 
-    def on_playback_stopped(self, playback_info, timestamp):
+    def on_playback_stopped(self, _playback_info, timestamp):
+        """Callback triggered when playback stops."""
+        # TODO: data is not saved when playback stops.
         logger.info("Playback stopped.")
         self.markers["end"] = timestamp
 
-    def on_playback_next(self, old, new, timestamp):
+    def on_playback_next(self, old, _new, timestamp):
+        """Callback triggered when playback item is changed."""
         logger.info("New playback item.")
         self.markers["end"] = timestamp
-        df = self._build_data_frame(old)
+        data_frame = self._build_data_frame(old)
         path = os.path.join(
             configuration.app.get_session_data_dir(), f"{timestamp}.json"
         )
-        df.save(path)
+        data_frame.save(path)
         self.reset()
         self.markers["start"] = timestamp
 
     def set_label(self, label):
+        """Label current playback and add to corresponding playlist."""
         self.label = label
         self.markers["labeling"] = datetime.now()
         _add_item_to_eeg_playlist(self.monitor.playback_info, label)
 
     def start(self):
+        """Start monitoring for playback changes."""
         self.monitor.start()
 
     def stop(self):
+        """Stop monitoring playback changes."""
         self.monitor.stop()
 
     def _build_data_frame(self, playback_info):
+        """Create a DataFrame with collected data."""
         return exporter.DataFrame(
             playback_info,
             self.collector.get_data(),

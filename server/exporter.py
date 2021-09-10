@@ -1,3 +1,6 @@
+""" 2021 Created by michal@buyuk-dev.com
+"""
+
 import os
 from datetime import datetime
 import json
@@ -16,6 +19,7 @@ class DataFrame:
     """
 
     def __init__(self, playback_info, eeg_data, timestamps, label, userid):
+        """Initialize DataFrame with data."""
         self.playback_info = playback_info
         self.eeg_data = eeg_data
         self.timestamps = timestamps
@@ -24,11 +28,13 @@ class DataFrame:
         self._encoding = "utf-8"
 
     def serialize_eeg(self):
+        """Serialize eeg data for compatibility with JSON format."""
         eeg = pickle.dumps(self.eeg_data)
         eeg = base64.b64encode(eeg)
         return eeg.decode(self._encoding)
 
-    def save(self, filename, format="json"):
+    def save(self, filename):
+        """Export data frame to a json file."""
         directory = os.path.dirname(filename)
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -44,13 +50,13 @@ class DataFrame:
         def datetime_jsonify(obj):
             if isinstance(obj, datetime):
                 return obj.isoformat()
-            else:
-                raise TypeError(f"{type(obj)} is not JSON serializable.")
+            raise TypeError(f"{type(obj)} is not JSON serializable.")
 
-        with open(filename, "w") as output_file:
+        with open(filename, "w", encoding="utf-8") as output_file:
             json.dump(data, output_file, default=datetime_jsonify)
 
     def __str__(self):
+        """Convert DataFrame to human-readable string."""
         return (
             "DataFrame object:\n"
             "userid: {0}\n"
@@ -67,8 +73,9 @@ class DataFrame:
         )
 
     @classmethod
-    def load(cls, filename, format="json"):
-        with open(filename, "r") as input_file:
+    def load(cls, filename):
+        """Import DataFrame from json file."""
+        with open(filename, "r", encoding="utf-8") as input_file:
             data = json.load(input_file)
 
         eeg = data["eeg"]
@@ -84,8 +91,8 @@ class DataFrame:
         )
 
 
-if __name__ == "__main__":
-
+def test():
+    """Custom test of the module."""
     # Create an example of DataFrame object
     eeg_data = np.random.rand(100, 10)
     playback_info = {
@@ -100,11 +107,15 @@ if __name__ == "__main__":
     label = "happy"
     userid = "12345"
 
-    df = DataFrame(playback_info, eeg_data, timestamps, label, userid)
+    data_frame = DataFrame(playback_info, eeg_data, timestamps, label, userid)
 
     # Export data to a test file. The file will be in json format
-    df.save("test.json")
+    data_frame.save("test.json")
 
     # Import data from the test file into new DataFrame object. The file must be in json format
-    df2 = DataFrame.load("test.json")
-    print(df2)
+    data_frame_2 = DataFrame.load("test.json")
+    print(data_frame_2)
+
+
+if __name__ == "__main__":
+    test()

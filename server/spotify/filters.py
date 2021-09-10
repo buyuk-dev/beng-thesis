@@ -1,3 +1,7 @@
+""" 2021 Created by michal@buyuk-dev.com
+"""
+
+
 def playlists(response):
     """Extract only required fields from user playlists Spotify API response."""
     items = response["items"]
@@ -8,15 +12,15 @@ def playlists(response):
     }
 
 
-def playback_info(playback_info):
+def playback_info(info):
     """Extract only the required info from Spotify API response."""
     return {
-        "artists": playback_info["item"]["artists"][0]["name"],
-        "song": playback_info["item"]["name"],
-        "uri": playback_info["item"]["uri"],
-        "popularity": playback_info["item"]["popularity"],
-        "album": playback_info["item"]["album"]["name"],
-        "released": playback_info["item"]["album"]["release_date"],
-        "duration": playback_info["item"]["duration_ms"] // 1000,
-        "progress": playback_info["progress_ms"] // 1000,
+        "artists": info["item"]["artists"][0]["name"],
+        "song": info["item"]["name"],
+        "uri": info["item"]["uri"],
+        "popularity": info["item"]["popularity"],
+        "album": info["item"]["album"]["name"],
+        "released": info["item"]["album"]["release_date"],
+        "duration": info["item"]["duration_ms"] // 1000,
+        "progress": info["progress_ms"] // 1000,
     }

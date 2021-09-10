@@ -1,9 +1,10 @@
-import time
-import threading
-import multiprocessing
+""" 2021 Created by michal@buyuk-dev.com
 
-import flask
+    Flask server provides an HTTP interface for the clients.
+"""
+
 import webbrowser
+import flask
 
 from logger import logger
 
@@ -14,8 +15,6 @@ import spotify.filters
 
 import muse
 import session
-
-import utils
 
 
 g_server = flask.Flask("EegDataCollectionServer")
@@ -29,20 +28,23 @@ g_session = None
 
 @g_server.route("/user/<userid>/config")
 def on_system_config(userid):
+    """Get or update app config."""
     if flask.request.method == "GET":
         logger.info("User requests configuration.")
         return configuration.get_config_view(userid), 200
-    elif flask.request.method == "POST":
+
+    if flask.request.method == "POST":
         logger.info("User wants to update configuration.")
-        status = configuration.update_config(userid, flask.request.json)
+        configuration.update_config(userid, flask.request.json)
         return configuration.get_config_view(userid), 200
-    else:
-        logger.error("Unsupported request method.")
-        return {"error": "Invalid request method, must be GET or POST."}, code
+
+    logger.error("Unsupported request method.")
+    return {"error": "Invalid request method, must be GET or POST."}, 405
 
 
 @g_server.route("/spotify/connect")
 def on_spotify_connect():
+    """Authorize app to access user's Spotify account through API."""
     logger.info("Connecting to Spotify...")
     auth_url = spotify.api.authorize_user(configuration.spotify.get_callback_url())
     webbrowser.open(auth_url)
@@ -51,6 +53,7 @@ def on_spotify_connect():
 
 @g_server.route("/spotify/status")
 def on_spotify_status():
+    """Check if spotify was authorized and access token exists."""
     logger.info("Requesting spotify connection status...")
     response = {"status": configuration.spotify.get_token() is not None}
     return response, 200
@@ -58,10 +61,11 @@ def on_spotify_status():
 
 @g_server.route("/spotify/playback")
 def on_spotify_playback():
+    """Get current spotify playback info."""
     logger.info("Requesting current spotify playback info...")
     if configuration.spotify.get_token() is None:
-        logger.error(f"Spotify unauthorized.")
-        return {"error": f"Spotify not authorized."}, 401
+        logger.error("Spotify unauthorized.")
+        return {"error": "Spotify not authorized."}, 401
 
     current_playback_info = session.monitor.get_current_playback_info(
         configuration.spotify.get_token()
@@ -74,10 +78,11 @@ def on_spotify_playback():
 
 @g_server.route("/callback")
 def spotify_auth_callback():
+    """Callback used by Spotify API which is used to pass the access token."""
     logger.info("Spotify auth callback has been triggered.")
     auth_code = flask.request.args.get("code", None)
-    if auth_code == None:
-        logger.error(f"Spotify auth callback triggered with no auth code.")
+    if auth_code is None:
+        logger.error("Spotify auth callback triggered with no auth code.")
         return {"error": "Auth code is None."}, 401
 
     logger.debug(f"Auth code is {auth_code}")
@@ -111,8 +116,9 @@ def spotify_auth_callback():
     return {}, 200
 
 
-@g_server.route("/muse/connect/<address>")
+@g_server.route("/muse/connect")
 def on_muse_connect(address):
+    """Connect to Muse device specified in the configuration and setup LSL stream."""
     global g_stream
     global g_collector
 
@@ -131,6 +137,7 @@ def on_muse_connect(address):
 
 @g_server.route("/muse/start")
 def on_muse_start_stream():
+    """Connect to the Muse LSL stream."""
     global g_collector
 
     if g_collector is None:
@@ -139,7 +146,7 @@ def on_muse_start_stream():
             "error": "Muse needs to be connected before streaming is possible."
         }, 400
 
-    logger.info(f"Starting data stream.")
+    logger.info("Starting data stream.")
     g_collector.start()
 
     return {}, 200
@@ -147,6 +154,7 @@ def on_muse_start_stream():
 
 @g_server.route("/muse/stop")
 def on_muse_stop_stream():
+    """Disconnect from the LSL stream."""
     global g_collector
 
     if g_collector is None:
@@ -161,13 +169,14 @@ def on_muse_stop_stream():
 
 @g_server.route("/muse/disconnect")
 def on_muse_disconnect():
+    """Disconnect from Muse device and destroy LSL stream."""
     global g_stream
 
     if g_stream is None:
         logger.error("There is no active LSL stream.")
         return {"error": "Muse is not connected."}, 400
 
-    logger.info(f"Disconnecting muse device.")
+    logger.info("Disconnecting muse device.")
     g_stream.stop()
 
     return {}, 200
@@ -175,10 +184,11 @@ def on_muse_disconnect():
 
 @g_server.route("/muse/status")
 def on_muse_status():
+    """Get Muse and LSL stream connection status."""
     global g_stream
     global g_collector
 
-    logger.info(f"Requesting muse device status.")
+    logger.info("Requesting muse device status.")
     response = {
         "stream": g_stream is not None and g_stream.is_running(),
         "collector": g_collector is not None and g_collector.is_running(),
@@ -189,8 +199,10 @@ def on_muse_status():
 
 @g_server.route("/session/start")
 def on_session_start():
+    """Start data collection session."""
     global g_session
-    global connector
+    global g_stream
+    global g_collector
 
     logger.info("Starting session.")
     if configuration.spotify.get_token() is None:
@@ -210,9 +222,10 @@ def on_session_start():
 
 @g_server.route("/session/stop")
 def on_session_stop():
+    """Stop data collection session."""
+    global g_session
     logger.info("Stopping session.")
 
-    global g_session
     if g_session is None:
         return {"error": "No active session exists."}, 400
 

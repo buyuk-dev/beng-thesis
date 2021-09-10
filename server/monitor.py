@@ -1,3 +1,6 @@
+""" 2021 Created by michal@buyuk-dev.com
+"""
+
 import time
 from datetime import datetime
 
@@ -14,22 +17,24 @@ def get_current_playback_info(token):
     """Request current playback from Spotify API."""
     if token is None:
         logger.error("Spotify API access token unavailable.")
-        return
+        return None
 
     code, playback_info = spotify.api.get_current_playback_info(token)
 
     if code == 204:
         logger.warning("Looks like nothing is playing at the moment.")
-        return
+        return None
 
     if code != 200:
         logger.error(f"Error getting current playback: HTTP {code}.")
-        return
+        return None
 
     return spotify.filters.playback_info(playback_info)
 
 
 class PlaybackMonitor(StoppableThread):
+    """Monitors Spotify playback by continuously polling current playback info."""
+
     def __init__(self, playback_change_callback, *args, **kwargs):
         """playback_change_callback:
         Function that will be called when playback change is detected.
@@ -41,8 +46,10 @@ class PlaybackMonitor(StoppableThread):
         super().__init__(*args, **kwargs)
         self.playback_info = None
         self.playback_change_callback = playback_change_callback
+        self.poll_interval = 1
 
-    def _has_playback_changed(self, old, new):
+    @classmethod
+    def _has_playback_changed(cls, old, new):
         """Determine if both playback_info objects represent the same playback item."""
         if old is None and new is None:
             return False
@@ -50,7 +57,7 @@ class PlaybackMonitor(StoppableThread):
             return True
         return old["uri"] != new["uri"]
 
-    def run(self, poll_interval=1):
+    def run(self):
         """Keeps polling playback info from Spotify to determine if it has changed."""
         while not self.stopped():
             token = configuration.spotify.get_token()
@@ -58,7 +65,7 @@ class PlaybackMonitor(StoppableThread):
             if self._has_playback_changed(self.playback_info, new_playback_info):
                 self.on_playback_change(new_playback_info)
             self.playback_info = new_playback_info
-            time.sleep(poll_interval)
+            time.sleep(self.poll_interval)
 
     def on_playback_change(self, playback_info):
         """Callback for when playback changes."""
@@ -66,7 +73,8 @@ class PlaybackMonitor(StoppableThread):
         self.playback_change_callback(self.playback_info, playback_info, timestamp)
 
 
-if __name__ == "__main__":
+def test():
+    """Custom test for PlaybackMonitor class."""
 
     # The expected outcome of this test is that the callback is called twice.
     import unittest.mock
@@ -119,3 +127,7 @@ if __name__ == "__main__":
 
         time.sleep(3)
         playback_monitor.stop()
+
+
+if __name__ == "__main__":
+    test()

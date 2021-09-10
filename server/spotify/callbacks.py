@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 
 
 class SocketListener(threading.Thread):
+    """Create proto-http server, which listens for requests coming from spotify that may represent API authorization callback."""
 
     NUMBER_OF_BYTES_TO_READ = 512
 

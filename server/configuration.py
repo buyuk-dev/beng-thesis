@@ -5,6 +5,7 @@ import json
 import os
 import sys
 
+from logger import logger
 import secret
 
 
@@ -16,17 +17,21 @@ app = None
 
 
 def _determine_platform():
+    """ Determine operating system the app is running on. """
     if sys.platform == "darwin":
         return "macos"
-    elif sys.platform in ["win32", "cygwin"]:
+
+    if sys.platform in ["win32", "cygwin"]:
         return "windows"
-    elif sys.platform == "linux":
+
+    if sys.platform == "linux":
         return "linux"
-    else:
-        return None
+
+    return None
 
 
 def _get_config_path(filename, check_if_exists=True):
+    """ Get config file path. """
     if not os.path.exists(CONFIGURATION_DIR):
         os.makedirs(CONFIGURATION_DIR)
 
@@ -38,6 +43,7 @@ def _get_config_path(filename, check_if_exists=True):
 
 
 class Spotify:
+
     def __init__(self):
         self.set_client_id(None)
         self.set_client_secret(None)
@@ -85,19 +91,19 @@ class Spotify:
     @classmethod
     def load(cls, filename):
         """Load Spotify config from JSON file"""
-        with open(filename) as f:
+        with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            spotify = cls()
-            spotify.set_client_id(data["client_id"])
-            spotify.set_client_secret(data["client_secret"])
-            spotify.set_callback_url(data["callback_url"])
-            spotify.set_playlists(data["playlists"])
-            spotify.set_user_id(data["user_id"])
-            return spotify
+            config = cls()
+            config.set_client_id(data["client_id"])
+            config.set_client_secret(data["client_secret"])
+            config.set_callback_url(data["callback_url"])
+            config.set_playlists(data["playlists"])
+            config.set_user_id(data["user_id"])
+            return config
 
     def save(self, filename):
         """Save Spotify config to JSON file"""
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding='utf-8') as f:
             data = {
                 "client_id": self.get_client_id(),
                 "client_secret": self.get_client_secret(),
@@ -109,6 +115,7 @@ class Spotify:
 
 
 class Muse:
+
     def __init__(self):
         self.set_name(None)
         self.set_address(None)
@@ -128,16 +135,16 @@ class Muse:
     @classmethod
     def load(cls, filename):
         """Load Muse config from JSON file"""
-        with open(filename) as f:
+        with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            muse = cls()
-            muse.set_name(data["name"])
-            muse.set_address(data["address"])
-            return muse
+            config = cls()
+            config.set_name(data["name"])
+            config.set_address(data["address"])
+            return config
 
     def save(self, filename):
         """Save Muse config to JSON file"""
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding='utf-8') as f:
             data = {
                 "name": self.get_name(),
                 "address": self.get_address(),
@@ -146,6 +153,7 @@ class Muse:
 
 
 class App:
+
     def __init__(self):
         self.set_labels_to_playlists_map(None)
         self.set_session_data_dir(None)
@@ -165,16 +173,16 @@ class App:
     @classmethod
     def load(cls, filename):
         """Load App config from JSON file"""
-        with open(filename) as f:
+        with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            app = cls()
-            app.set_labels_to_playlists_map(data["labels_to_playlists_map"])
-            app.set_session_data_dir(data["session_data_dir"])
-            return app
+            config = cls()
+            config.set_labels_to_playlists_map(data["labels_to_playlists_map"])
+            config.set_session_data_dir(data["session_data_dir"])
+            return config
 
     def save(self, filename):
         """Save App config to JSON file"""
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding='utf-8') as f:
             data = {
                 "labels_to_playlists_map": self.get_labels_to_playlists_map(),
                 "session_data_dir": self.get_session_data_dir(),
@@ -219,7 +227,7 @@ def load_configuration():
     app = App.load(_get_config_path("app.json"))
 
 
-def get_config_view(userid):
+def get_config_view(_userid):
     global spotify
     global muse
     global app
@@ -228,7 +236,7 @@ def get_config_view(userid):
     return config_view
 
 
-def update_config(userid, partial_config_json):
+def update_config(_userid, partial_config_json):
     global spotify
     global muse
     global app
