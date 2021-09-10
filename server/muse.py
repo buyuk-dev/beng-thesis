@@ -121,6 +121,7 @@ class DataCollector(utils.StoppableThread):
 
     def clear(self):
         self.data = [tuple([0] * self.stream.channels_count)]
+        self.timestamps = []
 
     def get_data_size(self):
         return len(self.data) * self.stream.channels_count * self.stream.sampling_rate
@@ -138,8 +139,10 @@ class DataCollector(utils.StoppableThread):
             chunk, timestamps = self.stream.inlet.pull_chunk(timeout=0.1)
             with self.lock:
                 self.data.extend(chunk)
+                self.timestamps.extend(timestamps)
                 if self.buffer_size is not None:
                     self.data = self.data[-self.buffer_size:]
+                    self.timestamps = self.timestamps[-self.buffer_size:]
         self.running = False
 
 
