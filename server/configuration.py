@@ -10,6 +10,10 @@ import secret
 
 CONFIGURATION_DIR = "configs"
 
+spotify = None
+muse = None
+app = None
+
 
 def _determine_platform():
     if sys.platform == "darwin":
@@ -147,12 +151,19 @@ class App:
 
     def __init__(self):
         self.set_labels_to_playlists_map(None)
+        self.set_session_data_dir(None)
 
     def get_labels_to_playlists_map(self):
         return self.labels_to_playlists_map
 
     def set_labels_to_playlists_map(self, new_map):
         self.labels_to_playlists_map = new_map
+
+    def get_session_data_dir(self):
+        return self.session_data_dir
+
+    def set_session_data_dir(self, new_dir):
+        self.session_data_dir = new_dir
 
     @classmethod
     def load(cls, filename):
@@ -161,6 +172,7 @@ class App:
             data = json.load(f)
             app = cls()
             app.set_labels_to_playlists_map(data['labels_to_playlists_map'])
+            app.set_session_data_dir(data["session_data_dir"])
             return app
 
     def save(self, filename):
@@ -168,13 +180,9 @@ class App:
         with open(filename, 'w') as f:
             data = {
                 'labels_to_playlists_map': self.get_labels_to_playlists_map(),
+                'session_data_dir': self.get_session_data_dir()
             }
             json.dump(data, f)
-
-
-spotify = None
-muse = None
-app = None
 
 
 def reset_configuration():
@@ -202,6 +210,7 @@ def reset_configuration():
         "dislike": "EEG-Disliked",
         "meh": "EEG-Meh"
     })
+    app.set_session_data_dir("data")
     app.save(_get_config_path("app.json", False))
 
 

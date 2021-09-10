@@ -17,7 +17,7 @@ def _add_item_to_eeg_playlist(item, label):
 
     if label not in playlists_map:
         logger.error(f"There is no playlist for {label} label.")
-        return
+        return False
 
     playlist_name = playlists_map[label]
     playlist = configuration.spotify.get_playlists()[playlist_name]
@@ -29,26 +29,30 @@ def _add_item_to_eeg_playlist(item, label):
         item["uri"]
     )
 
+    if code not in [200, 201]:
+        logger.error(f"Adding item to playlist failed with HTTP {code} error: {resp}.")
+        return False
+
+    return True
+
 
 class Session:
 
     def __init__(self, collector):
-        self.monitor = monitor.PlaybackMonitor(lambda old, new, ts: self.on_playback_change(old, new, ts))
+        self.monitor = monitor.PlaybackMonitor(
+            lambda old, new, ts: self.on_playback_change(old, new, ts)
+        )
         self.collector = collector
-
         self.init_new_item()
         self.userid = 0
-        self.session_data_dir = "data"
 
-    def init_new_item(self):
+    def reset(self):
         self.collector.clear()
-
         self.markers = {
             "start": None,
             "end": None,
             "labeling": None
         }
-        self.set_label(None)
 
     def on_playback_change(self, old, new, timestamp):
         """ TODO: Move logic detecting type of change inside the monitor,
@@ -65,7 +69,7 @@ class Session:
 
     def on_playback_started(self, playback_info, timestamp):
         logger.info("Playback has started.")
-        self.init_new_item()
+        self.reset()
         self.markers["start"] = timestamp
 
     def on_playback_stopped(self, playback_info, timestamp):
@@ -76,14 +80,15 @@ class Session:
         logger.info("New playback item.")
         self.markers["end"] = timestamp
         df = self._build_data_frame(old)
-        path = os.path.join(self.session_data_dir, f"{timestamp}.json")
+        path = os.path.join(configuration.app.get_session_data_dir(), f"{timestamp}.json")
         df.save(path)
-        self.init_new_item()
+        self.reset()
+        self.markers["start"] = timestamp
 
     def set_label(self, label):
         self.label = label
         self.markers["labeling"] = datetime.now()
-        _add_item_to_playlist(self.monitor.playback_info, label)
+        _add_item_to_eeg_playlist(self.monitor.playback_info, label)
 
     def start(self):
         self.monitor.start()

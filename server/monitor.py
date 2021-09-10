@@ -9,6 +9,7 @@ import spotify.filters
 from utils import StoppableThread
 import configuration
 
+
 def get_current_playback_info(token):
     """ Request current playback from Spotify API.
     """
