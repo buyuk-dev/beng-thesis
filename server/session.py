@@ -6,9 +6,28 @@ from logger import logger
 import monitor
 import exporter
 
+import spotify.api
+import configuration
 
-def add_to_playlist(item, label):
-    pass
+
+def _add_item_to_eeg_playlist(item, label):
+    """ Add playback item to the playlist corresponding to the given label.
+    """
+    playlists_map = configuration.app.get_labels_to_playlists_map()
+
+    if label not in playlists_map:
+        logger.error(f"There is no playlist for {label} label.")
+        return
+
+    playlist_name = playlists_map[label]
+    playlist = configuration.spotify.get_playlists()[playlist_name]
+
+    logger.debug(f"Adding track {item['song']} to playlist {playlist_name}")
+    code, resp = spotify.api.add_item_to_playlist(
+        configuration.spotify.get_token(),
+        playlist["id"],
+        item["uri"]
+    )
 
 
 class Session:
@@ -64,6 +83,7 @@ class Session:
     def set_label(self, label):
         self.label = label
         self.markers["labeling"] = datetime.now()
+        _add_item_to_playlist(self.monitor.playback_info, label)
 
     def start(self):
         self.monitor.start()
