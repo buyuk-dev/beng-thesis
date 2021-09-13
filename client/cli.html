@@ -1,0 +1,94 @@
+<!doctype html>
+<!--
+
+Create a website which acts as a client to the REST API in the following way:
+
+G1. Session management:
+
+    Two buttons in the top left corner that make requests to:
+
+    - /session/start
+    - /session/stop
+
+2. Muse EEG headset connection:
+
+    Three buttons in the top right corner, corresponding to the following endpoints:
+
+    - /muse/connect
+    - /muse/start
+    - /muse/stop
+
+3. Song labeling:
+
+    Three large, square buttons with nice styling in the center of the page, each of them corresponds to one of the following endpoints:
+
+    - /session/label/like
+    - /session/label/dislike
+    - /session/label/meh
+
+-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Museify</title>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        <style>
+            body {
+                padding-top: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <nav class="navbar navbar-inverse navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">Museify</a>
+                </div>
+                <div id="navbar" class="collapse navbar-collapse">
+                    <ul class="nav navbar-nav">
+                        <li class="active"><a href="#">Session</a></li>
+                        <li><a href="#">Muse</a></li>
+                        <li><a href="#">Label</a></li>
+                    </ul>
+                </div><!--/.nav-collapse -->
+            </div>
+        </nav>
+        <div class="container">
+            <div class="row">
+                <div>
+                    <h3>Spotify</h3>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/spotify/connect')">Connect</button>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/spotify/playback')">Stop</button>
+                </div>
+                <div>
+                    <h3>Session</h3>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/start')">Start</button>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/stop')">Stop</button>
+                </div>
+                <div>
+                    <h3>Muse</h3>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/muse/connect')">Connect</button>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/muse/disconnect')">Disconnect</button>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/muse/start')">Start</button>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/muse/stop')">Stop</button>
+                </div>
+                <div>
+                    <h3>Label</h3>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/label/like')">Like</button>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/label/dislike')">Dislike</button>
+                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/label/meh')">Meh</button>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
+
