@@ -36,8 +36,8 @@ class CommandParser:
 
     def run(self, args=None):
         args = self.parser.parse_args(args)
-        if not hasattr(args, "command"):
-            self.parser.print_help()
+        if not hasattr(args, "command") or args.command is None:
+            logger.error(f"There is no handler attached to this command.")
             exit(1)
 
         command = args.command
