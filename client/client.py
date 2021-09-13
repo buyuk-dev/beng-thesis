@@ -29,7 +29,7 @@ def spotify_status():
     return code, response
 
 
-def connect_muse(address):
+def connect_muse():
     r = requests.get(f"{HOST}/muse/connect")
     code, response = r.status_code, r.json()
     return code, response
