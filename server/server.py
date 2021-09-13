@@ -18,7 +18,7 @@ import muse
 import session
 
 
-g_server = flask.Flask("EegDataCollectionServer")
+g_server = flask.Flask("EegDataCollectionServer", template_folder="../client")
 g_server.debug = True
 CORS(g_server)
 
@@ -250,5 +250,10 @@ def on_session_label(label):
     return {}, 200
 
 
+@g_server.route("/client")
+def on_client():
+    return flask.render_template("cli.html")
+
+
 if __name__ == "__main__":
-    g_server.run()
+    g_server.run(host="0.0.0.0", port=8000)
