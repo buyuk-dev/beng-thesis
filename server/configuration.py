@@ -198,7 +198,8 @@ def reset_configuration():
     spotify = Spotify()
     spotify.set_client_id(secret.SPOTIFY_CLIENT_ID)
     spotify.set_client_secret(secret.SPOTIFY_CLIENT_SECRET)
-    spotify.set_callback_url("http://localhost:5000/callback")
+    #spotify.set_callback_url("http://localhost:5000/callback")
+    spotify.set_callback_url("http://0.0.0.0:8000/callback")
     spotify.save(_get_config_path("spotify.json", False))
 
     muse = Muse()
