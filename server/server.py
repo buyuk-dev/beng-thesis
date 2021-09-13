@@ -5,6 +5,7 @@
 
 import webbrowser
 import flask
+from flask_cors import CORS
 
 from logger import logger
 
@@ -19,6 +20,7 @@ import session
 
 g_server = flask.Flask("EegDataCollectionServer")
 g_server.debug = True
+CORS(g_server)
 
 
 g_stream = None
