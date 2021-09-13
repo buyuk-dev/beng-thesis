@@ -32,62 +32,100 @@ G1. Session management:
         <meta charset="utf-8">
         <title>Museify</title>
         <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
         <style>
-            body {
-                padding-top: 50px;
+            button {
+                width: 150px;
+                height: 150px;
+            }
+
+            .like {
+                background-color: #4CAF50;
+                border: none;
+            }
+
+            .meh {
+                background-color: #FFC107;
+                border: none;
+            }
+
+            .dislike {
+                background-color: #F44336;
+                border: none;
+            }
+
+            .like:hover, .meh:hover, .dislike:hover {
+                background-color: #4CAF50;
+                border: none;
+            }
+
+            .spotify-connect, .spotify-playback {
+                background-color: #1DB954;
+                border: none;
+            }
+
+            .spotify-connect, .spotify-playback:hover {
+                background-color: #1DB954;
+                border: none;
+            }
+
+            .session-start, .session-stop {
+                background-color: #4CAF50;
+                border: none;
+            }
+
+            .session-start, .session-stop:hover {
+                background-color: #4CAF50;
+                border: none;
+            }
+
+            .muse-connect, .muse-start, .muse-stop {
+                background-color: #FFC107;
+                border: none;
+            }
+
+            .muse-connect, .muse-start, .muse-stop:hover {
+                background-color: #FFC107;
+                border: none;
+            }
+
+            .muse-disconnect {
+                background-color: #F44336;
+                border: none;
+            }
+
+            .muse-disconnect:hover {
+                background-color: #F44336;
+                border: none;
             }
         </style>
     </head>
     <body>
-        <nav class="navbar navbar-inverse navbar-fixed-top">
-            <div class="container">
-                <div class="navbar-header">
-                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
-                    <a class="navbar-brand" href="#">Museify</a>
-                </div>
-                <div id="navbar" class="collapse navbar-collapse">
-                    <ul class="nav navbar-nav">
-                        <li class="active"><a href="#">Session</a></li>
-                        <li><a href="#">Muse</a></li>
-                        <li><a href="#">Label</a></li>
-                    </ul>
-                </div><!--/.nav-collapse -->
+        <div>
+            <h3>Spotify</h3>
+            <button type="button" class=".spotify-connect" onclick="$.get('/spotify/connect')">Connect</button>
+            <button type="button" class=".spotify-playback" onclick="$.get('/spotify/playback')">Playback</button>
+        </div>
+        <div>
+            <h3>Session</h3>
+            <button type="button" class=".session-start" onclick="$.get('/session/start')">Start</button>
+            <button type="button" class=".session-stop" onclick="$.get('/session/stop')">Stop</button>
+        </div>
+        <div>
+            <h3>Muse</h3>
+            <div>
+                <button type="button" class=".muse-connect" onclick="$.get('/muse/connect')">Connect</button>
+                <button type="button" class=".muse-disconnect" onclick="$.get('/muse/disconnect')">Disconnect</button>
             </div>
-        </nav>
-        <div class="container">
-            <div class="row">
-                <div>
-                    <h3>Spotify</h3>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/spotify/connect')">Connect</button>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/spotify/playback')">Stop</button>
-                </div>
-                <div>
-                    <h3>Session</h3>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/start')">Start</button>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/stop')">Stop</button>
-                </div>
-                <div>
-                    <h3>Muse</h3>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/muse/connect')">Connect</button>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/muse/disconnect')">Disconnect</button>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/muse/start')">Start</button>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/muse/stop')">Stop</button>
-                </div>
-                <div>
-                    <h3>Label</h3>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/label/like')">Like</button>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/label/dislike')">Dislike</button>
-                    <button type="button" class="btn btn-primary" onclick="$.get('http://localhost:5000/session/label/meh')">Meh</button>
-                </div>
+            <div>
+                <button type="button" class=".muse-start" onclick="$.get('/muse/start')">Start</button>
+                <button type="button" class=".muse-stop" onclick="$.get('/muse/stop')">Stop</button>
             </div>
+        </div>
+        <div class="labels">
+            <h3>Label</h3>
+            <button type="button" class="like" onclick="$.get('/session/label/like')">Like</button>
+            <button type="button" class="meh" onclick="$.get('/session/label/meh')">Meh</button>
+            <button type="button" class="dislike" onclick="$.get('/session/label/dislike')">Dislike</button>
         </div>
     </body>
 </html>
