@@ -117,12 +117,12 @@ def spotify_auth_callback():
 
 
 @g_server.route("/muse/connect")
-def on_muse_connect(address):
+def on_muse_connect():
     """Connect to Muse device specified in the configuration and setup LSL stream."""
     global g_stream
     global g_collector
 
-    logger.info(f"Attempting connection to Muse 2 device at {address}.")
+    logger.info(f"Attempting connection to Muse 2 device.")
 
     if g_stream is None:
         g_stream = muse.Stream(configuration.muse.get_address())
