@@ -3,12 +3,14 @@
 
 import os
 import argparse
+from pprint import pformat
 
-from matplotlib import pyplot
+from matplotlib import pyplot, rcParams
+rcParams['font.family'] = 'monospace'
+
 import numpy as np
 
-from server import exporter
-
+import exporter
 
 def plot_data(data_frame):
     """data_frame:
@@ -16,6 +18,7 @@ def plot_data(data_frame):
     eeg_data: 2d array of eeg signal.
     playback_info: dictionary storing info about the spotify playback for which the signal was recorded.
     userid: subject's user id.
+    label: one of the following strings: like, dislike, meh
     """
 
     data = np.array(data_frame.eeg_data)
@@ -34,10 +37,21 @@ def plot_data(data_frame):
     print(f"labeling: {labeling} -> {labeling.timestamp()}")
     print(f"end: {end} -> {end.timestamp()}")
 
+    fig = pyplot.gcf()
+    fig.canvas.manager.set_window_title('EEG Data Viewer')
+
     pyplot.xlabel("Time (s)")
     pyplot.ylabel("EEG Signal")
-    pyplot.title(f"EEG Signal for {data_frame.userid}")
-
+    field_width, line_width = 15, 50
+    text = f"""
+    {'Title:'.ljust(field_width, ' ')} {data_frame.playback_info['song']}
+    {'Artist:'.ljust(field_width, ' ')} {data_frame.playback_info['artists']}
+    {'Popularity:'.ljust(field_width, ' ')} {data_frame.playback_info['popularity']}
+    {'Label:'.ljust(field_width, ' ')} {data_frame.label}
+    """
+    text = "\n".join(line.ljust(line_width, ' ') for line in text.splitlines())
+    pyplot.suptitle(text)
+    
     # Compute timestamps for each sample based on <start; end> range using linear interpolation.
     start_timestamp = start.timestamp()
     end_timestamp = end.timestamp()
