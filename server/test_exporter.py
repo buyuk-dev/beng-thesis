@@ -1,4 +1,6 @@
 import unittest
+import os
+
 import numpy as np
 from datetime import datetime, timedelta
 
@@ -21,6 +23,12 @@ class TestDataFrame(unittest.TestCase):
     label = "happy"
     userid = "12345"
 
+    test_file = "test.json"
+
+
+    def tearDown(self):
+        if os.path.isfile(self.test_file):
+            os.remove(self.test_file)
 
     def test_init(self):
         """Test initialization of DataFrame object."""
@@ -61,8 +69,8 @@ class TestDataFrame(unittest.TestCase):
             self.label,
             self.userid
         )
-        data_frame.save("test.json")
-        data_frame_2 = DataFrame.load("test.json")
+        data_frame.save(self.test_file)
+        data_frame_2 = DataFrame.load(self.test_file)
 
         self.assertEqual(data_frame_2.userid, data_frame.userid)
         self.assertEqual(data_frame_2.playback_info, data_frame.playback_info)
