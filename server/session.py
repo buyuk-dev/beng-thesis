@@ -11,8 +11,6 @@ from server import monitor
 from server import exporter
 from server import spotify
 
-# import spotify.api
-
 
 def _add_item_to_eeg_playlist(item, label):
     """Add playback item to the playlist corresponding to the given label."""
