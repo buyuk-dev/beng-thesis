@@ -7,11 +7,12 @@ async def count(name):
         print(f"{name} {i}")
         await asyncio.sleep(1)
 
+
 async def main():
     await asyncio.gather(count(1), count(2), count(3))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     s = time.perf_counter()
     asyncio.run(main())

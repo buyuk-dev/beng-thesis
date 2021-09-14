@@ -6,11 +6,13 @@ import argparse
 from pprint import pformat
 
 from matplotlib import pyplot, rcParams
-rcParams['font.family'] = 'monospace'
+
+rcParams["font.family"] = "monospace"
 
 import numpy as np
 
 import exporter
+
 
 def plot_data(data_frame):
     """data_frame:
@@ -38,7 +40,7 @@ def plot_data(data_frame):
     print(f"end: {end} -> {end.timestamp()}")
 
     fig = pyplot.gcf()
-    fig.canvas.manager.set_window_title('EEG Data Viewer')
+    fig.canvas.manager.set_window_title("EEG Data Viewer")
 
     pyplot.xlabel("Time (s)")
     pyplot.ylabel("EEG Signal")
@@ -49,9 +51,9 @@ def plot_data(data_frame):
     {'Popularity:'.ljust(field_width, ' ')} {data_frame.playback_info['popularity']}
     {'Label:'.ljust(field_width, ' ')} {data_frame.label}
     """
-    text = "\n".join(line.ljust(line_width, ' ') for line in text.splitlines())
+    text = "\n".join(line.ljust(line_width, " ") for line in text.splitlines())
     pyplot.suptitle(text)
-    
+
     # Compute timestamps for each sample based on <start; end> range using linear interpolation.
     start_timestamp = start.timestamp()
     end_timestamp = end.timestamp()
