@@ -133,10 +133,6 @@ def on_muse_connect():
         g_stream = muse.Stream(configuration.muse.get_address())
 
     g_stream.start()
-
-    if g_collector is None:
-        g_collector = muse.DataCollector(g_stream)
-
     return {}, 200
 
 
@@ -144,14 +140,18 @@ def on_muse_connect():
 def on_muse_start_stream():
     """Connect to the Muse LSL stream."""
     global g_collector
+    global g_stream
 
     if g_collector is None:
+        g_collector = muse.DataCollector(g_stream)
+
+    if g_stream is None or not g_stream.is_running():
         logger.error("There is no active LSL stream.")
         return {
             "error": "Muse needs to be connected before streaming is possible."
         }, 400
 
-    logger.info("Starting data stream.")
+    logger.info("Starting data collector.")
     g_collector.start()
 
     return {}, 200
@@ -168,6 +168,7 @@ def on_muse_stop_stream():
 
     logger.info("Stopping data collection.")
     g_collector.stop()
+    g_collector = None
 
     return {}, 200
 
@@ -183,6 +184,7 @@ def on_muse_disconnect():
 
     logger.info("Disconnecting muse device.")
     g_stream.stop()
+    g_stream = None
 
     return {}, 200
 
