@@ -33,9 +33,16 @@ class DataFrame:
         eeg = base64.b64encode(eeg)
         return eeg.decode(self._encoding)
 
+    @staticmethod
+    def deserialize_eeg(eeg):
+        return pickle.loads(
+            base64.b64decode(eeg)
+        )
+
     def save(self, filename):
         """Export data frame to a json file."""
         directory = os.path.dirname(filename)
+        directory = os.path.abspath(directory)
         if not os.path.exists(directory):
             os.makedirs(directory)
 
@@ -78,10 +85,7 @@ class DataFrame:
         with open(filename, "r", encoding="utf-8") as input_file:
             data = json.load(input_file)
 
-        eeg = data["eeg"]
-        eeg = base64.b64decode(eeg)
-        eeg = pickle.loads(eeg)
-
+        eeg = cls.deserialize_eeg(data["eeg"])
         timestamps = data["timestamps"]
         for key in timestamps:
             timestamps[key] = datetime.fromisoformat(timestamps[key])
@@ -89,33 +93,3 @@ class DataFrame:
         return cls(
             data["playback"], eeg, data["timestamps"], data["label"], data["userid"]
         )
-
-
-def test():
-    """Custom test of the module."""
-    # Create an example of DataFrame object
-    eeg_data = np.random.rand(100, 10)
-    playback_info = {
-        "playback_id": "12345",
-        "playback_start": "2020-01-01 12:00:00",
-        "playback_end": "2020-01-01 12:00:10",
-    }
-    timestamps = {
-        "labeling_start": "2020-01-01 12:00:05",
-        "labeling_end": "2020-01-01 12:00:10",
-    }
-    label = "happy"
-    userid = "12345"
-
-    data_frame = DataFrame(playback_info, eeg_data, timestamps, label, userid)
-
-    # Export data to a test file. The file will be in json format
-    data_frame.save("test.json")
-
-    # Import data from the test file into new DataFrame object. The file must be in json format
-    data_frame_2 = DataFrame.load("test.json")
-    print(data_frame_2)
-
-
-if __name__ == "__main__":
-    test()
