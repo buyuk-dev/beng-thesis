@@ -17,7 +17,7 @@ app = None
 
 
 def _determine_platform():
-    """ Determine operating system the app is running on. """
+    """Determine operating system the app is running on."""
     if sys.platform == "darwin":
         return "macos"
 
@@ -31,7 +31,7 @@ def _determine_platform():
 
 
 def _get_config_path(filename, check_if_exists=True):
-    """ Get config file path. """
+    """Get config file path."""
     if not os.path.exists(CONFIGURATION_DIR):
         os.makedirs(CONFIGURATION_DIR)
 
@@ -43,7 +43,6 @@ def _get_config_path(filename, check_if_exists=True):
 
 
 class Spotify:
-
     def __init__(self):
         self.set_client_id(None)
         self.set_client_secret(None)
@@ -91,7 +90,7 @@ class Spotify:
     @classmethod
     def load(cls, filename):
         """Load Spotify config from JSON file"""
-        with open(filename, 'r', encoding='utf-8') as f:
+        with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
             config = cls()
             config.set_client_id(data["client_id"])
@@ -103,7 +102,7 @@ class Spotify:
 
     def save(self, filename):
         """Save Spotify config to JSON file"""
-        with open(filename, "w", encoding='utf-8') as f:
+        with open(filename, "w", encoding="utf-8") as f:
             data = {
                 "client_id": self.get_client_id(),
                 "client_secret": self.get_client_secret(),
@@ -115,7 +114,6 @@ class Spotify:
 
 
 class Muse:
-
     def __init__(self):
         self.set_name(None)
         self.set_address(None)
@@ -135,7 +133,7 @@ class Muse:
     @classmethod
     def load(cls, filename):
         """Load Muse config from JSON file"""
-        with open(filename, 'r', encoding='utf-8') as f:
+        with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
             config = cls()
             config.set_name(data["name"])
@@ -144,7 +142,7 @@ class Muse:
 
     def save(self, filename):
         """Save Muse config to JSON file"""
-        with open(filename, "w", encoding='utf-8') as f:
+        with open(filename, "w", encoding="utf-8") as f:
             data = {
                 "name": self.get_name(),
                 "address": self.get_address(),
@@ -153,7 +151,6 @@ class Muse:
 
 
 class App:
-
     def __init__(self):
         self.set_labels_to_playlists_map(None)
         self.set_session_data_dir(None)
@@ -173,7 +170,7 @@ class App:
     @classmethod
     def load(cls, filename):
         """Load App config from JSON file"""
-        with open(filename, 'r', encoding='utf-8') as f:
+        with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
             config = cls()
             config.set_labels_to_playlists_map(data["labels_to_playlists_map"])
@@ -182,7 +179,7 @@ class App:
 
     def save(self, filename):
         """Save App config to JSON file"""
-        with open(filename, "w", encoding='utf-8') as f:
+        with open(filename, "w", encoding="utf-8") as f:
             data = {
                 "labels_to_playlists_map": self.get_labels_to_playlists_map(),
                 "session_data_dir": self.get_session_data_dir(),
@@ -198,7 +195,7 @@ def reset_configuration():
     spotify = Spotify()
     spotify.set_client_id(secret.SPOTIFY_CLIENT_ID)
     spotify.set_client_secret(secret.SPOTIFY_CLIENT_SECRET)
-    #spotify.set_callback_url("http://localhost:5000/callback")
+    # spotify.set_callback_url("http://localhost:5000/callback")
     spotify.set_callback_url("http://0.0.0.0:8000/callback")
     spotify.save(_get_config_path("spotify.json", False))
 

@@ -19,7 +19,6 @@ import server.spotify.api
 import server.spotify.filters
 
 
-
 g_server = flask.Flask("EegDataCollectionServer", template_folder="../client/web")
 g_server.debug = True
 CORS(g_server)
@@ -50,7 +49,9 @@ def on_system_config(userid):
 def on_spotify_connect():
     """Authorize app to access user's Spotify account through API."""
     logger.info("Connecting to Spotify...")
-    auth_url = server.spotify.api.authorize_user(configuration.spotify.get_callback_url())
+    auth_url = server.spotify.api.authorize_user(
+        configuration.spotify.get_callback_url()
+    )
     webbrowser.open(auth_url)
     return {}, 200
 

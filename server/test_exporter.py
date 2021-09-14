@@ -25,7 +25,6 @@ class TestDataFrame(unittest.TestCase):
 
     test_file = "test.json"
 
-
     def tearDown(self):
         if os.path.isfile(self.test_file):
             os.remove(self.test_file)
@@ -33,11 +32,7 @@ class TestDataFrame(unittest.TestCase):
     def test_init(self):
         """Test initialization of DataFrame object."""
         data_frame = DataFrame(
-            self.playback_info,
-            self.eeg_data,
-            self.timestamps,
-            self.label,
-            self.userid
+            self.playback_info, self.eeg_data, self.timestamps, self.label, self.userid
         )
 
         self.assertEqual(data_frame.playback_info, self.playback_info)
@@ -49,11 +44,7 @@ class TestDataFrame(unittest.TestCase):
     def test_serialize_eeg(self):
         """Test serialization and deserialization of eeg data."""
         data_frame = DataFrame(
-            self.playback_info,
-            self.eeg_data,
-            self.timestamps,
-            self.label,
-            self.userid
+            self.playback_info, self.eeg_data, self.timestamps, self.label, self.userid
         )
         eeg = data_frame.serialize_eeg()
         self.assertIs(type(eeg), str)
@@ -63,11 +54,7 @@ class TestDataFrame(unittest.TestCase):
     def test_save(self):
         """Test saving and loading DataFrame object to a json file."""
         data_frame = DataFrame(
-            self.playback_info,
-            self.eeg_data,
-            self.timestamps,
-            self.label,
-            self.userid
+            self.playback_info, self.eeg_data, self.timestamps, self.label, self.userid
         )
         data_frame.save(self.test_file)
         data_frame_2 = DataFrame.load(self.test_file)

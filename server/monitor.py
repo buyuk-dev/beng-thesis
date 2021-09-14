@@ -10,8 +10,9 @@ from server import configuration
 from server.utils import StoppableThread
 
 from server import spotify
-#import spotify.api
-#import spotify.filters
+
+# import spotify.api
+# import spotify.filters
 
 
 def get_current_playback_info(token):

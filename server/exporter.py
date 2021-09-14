@@ -35,9 +35,7 @@ class DataFrame:
 
     @staticmethod
     def deserialize_eeg(eeg):
-        return pickle.loads(
-            base64.b64decode(eeg)
-        )
+        return pickle.loads(base64.b64decode(eeg))
 
     def save(self, filename):
         """Export data frame to a json file."""
