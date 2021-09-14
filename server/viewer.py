@@ -36,7 +36,8 @@ def plot_data(data_frame):
 
     print("timestamps")
     print(f"start: {start} -> {start.timestamp()}")
-    print(f"labeling: {labeling} -> {labeling.timestamp()}")
+    if labeling is not None:
+        print(f"labeling: {labeling} -> {labeling.timestamp()}")
     print(f"end: {end} -> {end.timestamp()}")
 
     fig = pyplot.gcf()
@@ -57,7 +58,9 @@ def plot_data(data_frame):
     # Compute timestamps for each sample based on <start; end> range using linear interpolation.
     start_timestamp = start.timestamp()
     end_timestamp = end.timestamp()
-    labeling_timestamp = labeling.timestamp()
+    labeling_timestamp = None
+    if labeling is not None:
+        labeling_timestamp = labeling.timestamp()
     timestamps = np.linspace(start_timestamp, end_timestamp, data.shape[1])
 
     # Plot each channel of a signal on separate subplot, using timestamps for x axis.
@@ -66,7 +69,8 @@ def plot_data(data_frame):
         pyplot.plot(timestamps - start_timestamp, data[i])
 
         # Mark labeling timestamp using a vertical, red line.
-        pyplot.axvline(x=labeling_timestamp - start_timestamp, color="red")
+        if labeling_timestamp is not None:
+            pyplot.axvline(x=labeling_timestamp - start_timestamp, color="red")
 
         # Add labels.
         pyplot.xlabel("Time (s)")

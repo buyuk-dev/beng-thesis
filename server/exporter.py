@@ -86,7 +86,8 @@ class DataFrame:
         eeg = cls.deserialize_eeg(data["eeg"])
         timestamps = data["timestamps"]
         for key in timestamps:
-            timestamps[key] = datetime.fromisoformat(timestamps[key])
+            if timestamps[key] is not None:
+                timestamps[key] = datetime.fromisoformat(timestamps[key])
 
         return cls(
             data["playback"], eeg, data["timestamps"], data["label"], data["userid"]
