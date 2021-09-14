@@ -5,8 +5,8 @@ from pprint import pprint
 from typing import Optional, Callable
 
 import client
-from command_parser import CommandParser
 from logger import logger
+from cli.command_parser import CommandParser
 
 
 class ConfigCommandParser(CommandParser):
@@ -90,8 +90,7 @@ class SessionCommandParser(CommandParser):
         print(client.session_label(label))
 
 
-if __name__ == "__main__":
-
+def main():
     status, config = client.get_config(0)
     if "labels" not in config:
         logger.error("Config returned by the server doesn't contain required entry.")
@@ -102,3 +101,7 @@ if __name__ == "__main__":
     muse_cmd_parser = MuseCommandParser(parser)
     session_cmd_parser = SessionCommandParser(parser, config)
     parser.run()
+
+
+if __name__ == "__main__":
+    main()

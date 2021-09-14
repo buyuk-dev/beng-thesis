@@ -18,7 +18,7 @@ import muse
 import session
 
 
-g_server = flask.Flask("EegDataCollectionServer", template_folder="../client")
+g_server = flask.Flask("EegDataCollectionServer", template_folder="../client/web")
 g_server.debug = True
 CORS(g_server)
 

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 
-from command_parser import CommandParser
+from cli.command_parser import CommandParser
 
 
 class TestCommandParser(unittest.TestCase):
