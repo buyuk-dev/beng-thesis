@@ -3,21 +3,12 @@
 """
 
 import tkinter as tk
-import matplotlib
 
-matplotlib.use("TkAgg")
-
-import threading
-import webbrowser
-
-from logger import logger
 import configuration
 import widgets
-import spotify.api
-import spotify.callbacks
-import spotify.filters
-
 import client
+
+from logger import logger
 
 
 class GuiApp(tk.Tk):
