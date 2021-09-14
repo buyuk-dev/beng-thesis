@@ -4,13 +4,14 @@
 import time
 from datetime import datetime
 
-from logger import logger
+from server.logger import logger
+from server import configuration
 
-import spotify.api
-import spotify.filters
+from server.utils import StoppableThread
 
-from utils import StoppableThread
-import configuration
+from server import spotify
+#import spotify.api
+#import spotify.filters
 
 
 def get_current_playback_info(token):

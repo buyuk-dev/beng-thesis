@@ -4,12 +4,13 @@
 import os
 from datetime import datetime
 
-from logger import logger
-import monitor
-import exporter
+from server.logger import logger
+from server import configuration
 
-import spotify.api
-import configuration
+from server import monitor
+from server import exporter
+from server import spotify
+#import spotify.api
 
 
 def _add_item_to_eeg_playlist(item, label):

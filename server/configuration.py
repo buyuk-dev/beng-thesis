@@ -5,8 +5,8 @@ import json
 import os
 import sys
 
-from logger import logger
-import secret
+from server.logger import logger
+import server.secret
 
 
 CONFIGURATION_DIR = "configs"

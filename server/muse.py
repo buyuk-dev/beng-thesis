@@ -10,9 +10,10 @@ from matplotlib.animation import FuncAnimation
 import muselsl
 import pylsl
 
-import configuration
-from logger import logger
-import utils
+from server import configuration
+from server.logger import logger
+
+from server import utils
 
 
 class StreamConnector:

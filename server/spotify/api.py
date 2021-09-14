@@ -3,7 +3,8 @@
 
 import urllib
 import requests
-import configuration
+
+from server import configuration
 
 
 def authorize_user(redirect_uri):

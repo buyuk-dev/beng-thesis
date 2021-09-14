@@ -7,15 +7,17 @@ import webbrowser
 import flask
 from flask_cors import CORS
 
-from logger import logger
+import sys
 
-import configuration
+from server.logger import logger
+import server.configuration as configuration
 
-import spotify.api
-import spotify.filters
+from server import muse
+from server import session
 
-import muse
-import session
+import server.spotify.api
+import server.spotify.filters
+
 
 
 g_server = flask.Flask("EegDataCollectionServer", template_folder="../client/web")
@@ -48,7 +50,7 @@ def on_system_config(userid):
 def on_spotify_connect():
     """Authorize app to access user's Spotify account through API."""
     logger.info("Connecting to Spotify...")
-    auth_url = spotify.api.authorize_user(configuration.spotify.get_callback_url())
+    auth_url = server.spotify.api.authorize_user(configuration.spotify.get_callback_url())
     webbrowser.open(auth_url)
     return {}, 200
 
@@ -88,7 +90,7 @@ def spotify_auth_callback():
         return {"error": "Auth code is None."}, 401
 
     logger.debug(f"Auth code is {auth_code}")
-    code, resp = spotify.api.request_token(
+    code, resp = server.spotify.api.request_token(
         auth_code, configuration.spotify.get_callback_url()
     )
     if code != 200:
@@ -96,18 +98,18 @@ def spotify_auth_callback():
         return {"error": resp}, code
     token = resp["access_token"]
 
-    code, resp = spotify.api.get_user_profile(token)
+    code, resp = server.spotify.api.get_user_profile(token)
     if code != 200:
         logger.error(f"Failed to retireve user profile info: HTTP {code}.")
         return {"error": resp}, code
     user_id = resp["id"]
 
-    code, resp = spotify.api.get_user_playlists(token, user_id)
+    code, resp = server.spotify.api.get_user_playlists(token, user_id)
     if code != 200:
         logger.error(f"Failed to retrieve user's playlists: HTTP {code}.")
         return {"error": resp}, code
 
-    configuration.spotify.set_playlists(spotify.filters.playlists(resp))
+    configuration.spotify.set_playlists(server.spotify.filters.playlists(resp))
     configuration.spotify.set_user_id(user_id)
     configuration.spotify.set_token(token)
 
