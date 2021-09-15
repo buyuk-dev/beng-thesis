@@ -1,6 +1,8 @@
 """ 2021 Created by michal@buyuk-dev.com
 """
 
+import sys
+
 import threading
 import multiprocessing
 from pprint import pformat
@@ -201,3 +203,108 @@ class DataCollector(utils.StoppableThread):
                     self.data = self.data[-self.buffer_size :]
                     self.timestamps = self.timestamps[-self.buffer_size :]
         self.running = False
+
+
+
+from scipy import signal
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def compute_spectrum(X, fs, cutoff=np.inf):
+    """ Compute normalized frequency spectrum.
+    """
+    fft = np.abs(np.fft.fft(X)) / len(X)
+    fft = fft[range(int(len(X) / 2))]
+
+    freq = np.fft.fftfreq(len(X), 1.0 / fs)
+    freq = freq[range(int(len(X) / 2))]
+
+    index = np.where(freq < cutoff)[0][-1]
+    freq = freq[:index]
+    fft = fft[:index]
+
+    return freq[1:], fft[1:]
+
+
+def neurofeedback():
+
+    from server import configuration
+
+    # Design bandpass butterworth IIR filter for <8-13>Hz band.
+
+    fs = 256
+    nyq = fs * 0.5
+    low, high = 8, 13
+    sos = signal.butter(
+        N=10,
+        Wn=(low, high),
+        btype='bandpass',
+        output='sos',
+        fs=fs
+    )
+
+    # Generate complex signal
+    freq_comp = [5, 10, 20]
+    duration = 3.0
+    ts = np.linspace(.0, duration, int(fs * duration))
+    data = sum(np.sin(2 * np.pi * f * ts) for f in freq_comp)
+
+    plt.plot(ts, data)
+    plt.show()
+
+    # Plot spectrue
+    freqs, amps = compute_spectrum(data, fs)
+    plt.plot(freqs, amps)
+    plt.show()
+
+    # Plot filter frequency responose.
+    w, h = signal.sosfreqz(sos, worN=64)
+    db = 20 * np.log10(np.maximum(np.abs(h), 1e-5))
+    plt.plot(w/np.pi, db)
+    plt.show()
+   
+    # Plot filtered signal. 
+    filtered = signal.sosfilt(sos, data)
+    plt.plot(filtered)
+    plt.show()
+
+    # Plot spectrue
+    freqs, amps = compute_spectrum(filtered, fs)
+    plt.plot(freqs, amps)
+    plt.show()
+
+    return
+
+    # Run processing.
+    stream = Stream(configuration.muse.get_address())
+    stream.start()
+
+    sampling = stream.get_sampling_rate()
+    window = 10 * sampling
+
+    collector = DataCollector(stream, window)
+    collector.start()
+
+    while True:
+        data = collector.get_data()
+
+        # Apply bandpass filter to all channels in the data:
+        filtered = []
+        for channel in data:
+            filtered.append(
+                utils.butter_bandpass_filter(
+                    channel,
+                    configuration.neurofeedback.get_low_cutoff(),
+                    configuration.neurofeedback.get_high_cutoff(),
+                    sampling,
+                    order=3,
+                )
+            )
+
+        
+        
+
+
+if __name__ == '__main__':
+    neurofeedback()
