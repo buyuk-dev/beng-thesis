@@ -235,7 +235,7 @@ def neurofeedback():
 
     fs = 256
     nyq = fs * 0.5
-    low, high = 8, 13
+    low, high = 5, 40
     sos = signal.butter(
         N=10,
         Wn=(low, high),
@@ -245,33 +245,53 @@ def neurofeedback():
     )
 
     # Generate complex signal
-    freq_comp = [5, 10, 20]
-    duration = 3.0
+    freq_comp = [10, 60]
+    amp_comp = [1, 0.1]
+    duration = 60.0
     ts = np.linspace(.0, duration, int(fs * duration))
-    data = sum(np.sin(2 * np.pi * f * ts) for f in freq_comp)
+    data = sum(A * np.sin(2 * np.pi * f * ts) for A, f in zip(amp_comp, freq_comp))
 
+    plt.title("generated signal")
     plt.plot(ts, data)
     plt.show()
 
     # Plot spectrue
     freqs, amps = compute_spectrum(data, fs)
+    plt.title("signal spectrum")
     plt.plot(freqs, amps)
     plt.show()
 
     # Plot filter frequency responose.
     w, h = signal.sosfreqz(sos, worN=64)
     db = 20 * np.log10(np.maximum(np.abs(h), 1e-5))
+    plt.title("freq response")
     plt.plot(w/np.pi, db)
     plt.show()
    
-    # Plot filtered signal. 
+    # Filter signal
     filtered = signal.sosfilt(sos, data)
+    plt.title("offline filtered")
     plt.plot(filtered)
     plt.show()
 
     # Plot spectrue
     freqs, amps = compute_spectrum(filtered, fs)
+    plt.title("offline filtered spectrum")
     plt.plot(freqs, amps)
+    plt.show()
+
+
+    # Simulate real-time signal
+    received = 0
+    chunk_size = 10
+    z = np.zeros((sos.shape[0], 2))
+    filtered = []
+    while received < data.shape[0]:
+        received += chunk_size
+        out, z = signal.sosfilt(sos, data[received - chunk_size:received], zi=z)
+        filtered.extend(out)
+    plt.title("real-time")
+    plt.plot(filtered)
     plt.show()
 
     return
