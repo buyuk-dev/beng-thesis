@@ -205,15 +205,13 @@ class DataCollector(utils.StoppableThread):
         self.running = False
 
 
-
 from scipy import signal
 import matplotlib.pyplot as plt
 import numpy as np
 
 
 def compute_spectrum(X, fs, cutoff=np.inf):
-    """ Compute normalized frequency spectrum.
-    """
+    """Compute normalized frequency spectrum."""
     fft = np.abs(np.fft.fft(X)) / len(X)
     fft = fft[range(int(len(X) / 2))]
 
@@ -236,19 +234,13 @@ def neurofeedback():
     fs = 256
     nyq = fs * 0.5
     low, high = 5, 40
-    sos = signal.butter(
-        N=10,
-        Wn=(low, high),
-        btype='bandpass',
-        output='sos',
-        fs=fs
-    )
+    sos = signal.butter(N=10, Wn=(low, high), btype="bandpass", output="sos", fs=fs)
 
     # Generate complex signal
     freq_comp = [10, 60]
     amp_comp = [1, 0.1]
     duration = 60.0
-    ts = np.linspace(.0, duration, int(fs * duration))
+    ts = np.linspace(0.0, duration, int(fs * duration))
     data = sum(A * np.sin(2 * np.pi * f * ts) for A, f in zip(amp_comp, freq_comp))
 
     plt.title("generated signal")
@@ -265,9 +257,9 @@ def neurofeedback():
     w, h = signal.sosfreqz(sos, worN=64)
     db = 20 * np.log10(np.maximum(np.abs(h), 1e-5))
     plt.title("freq response")
-    plt.plot(w/np.pi, db)
+    plt.plot(w / np.pi, db)
     plt.show()
-   
+
     # Filter signal
     filtered = signal.sosfilt(sos, data)
     plt.title("offline filtered")
@@ -280,7 +272,6 @@ def neurofeedback():
     plt.plot(freqs, amps)
     plt.show()
 
-
     # Simulate real-time signal
     received = 0
     chunk_size = 10
@@ -288,10 +279,16 @@ def neurofeedback():
     filtered = []
     while received < data.shape[0]:
         received += chunk_size
-        out, z = signal.sosfilt(sos, data[received - chunk_size:received], zi=z)
+        out, z = signal.sosfilt(sos, data[received - chunk_size : received], zi=z)
         filtered.extend(out)
-    plt.title("real-time")
+    plt.title("online filtered")
     plt.plot(filtered)
+    plt.show()
+
+    # Plot spectrue
+    freqs, amps = compute_spectrum(filtered, fs)
+    plt.title("online filtered spectrum")
+    plt.plot(freqs, amps)
     plt.show()
 
     return
@@ -322,9 +319,6 @@ def neurofeedback():
                 )
             )
 
-        
-        
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     neurofeedback()
