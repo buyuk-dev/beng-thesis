@@ -17,3 +17,12 @@ https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6479797/
 https://eegedu.com/
 https://mne.tools/stable/index.html
 https://hackaday.io/project/162169-muse-eeg-headset-making-extra-electrode
+
+
+## Topis
+
+running variance computation: https://www.johndcook.com/blog/standard_deviation/
+real-time audio with matplotlib: https://medium.com/quick-code/graphing-real-time-audio-with-python-213be536b094
+
+
+

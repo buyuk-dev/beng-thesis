@@ -330,16 +330,19 @@ def neurofeedback():
     input("press enter when stream starts...")
 
     filters = [
-        BandPassFilter((8, 13), stream.get_sampling_rate())
+        BandPassFilter((1,45), stream.get_sampling_rate())
         for _ in range(stream.get_channels_count())
     ]
     # plot(filters[0].compute_frequency_response(), "filter response")
 
     data = []
 
-    window = stream.get_sampling_rate() * 5
+    window = stream.get_sampling_rate() * 10
     stats = RunningStats()
     prev_alpha = None
+
+    # Ignore first batch as its likely empty
+    stream.pull_chunk()
 
     def data_source():
         nonlocal data
@@ -348,6 +351,8 @@ def neurofeedback():
         nonlocal filters
         nonlocal stats
         nonlocal prev_alpha
+
+        var_channel = 0
 
         eeg, ts = stream.pull_chunk()
         eeg = np.transpose(eeg)
@@ -362,7 +367,14 @@ def neurofeedback():
             data = data[-window:]
 
         try:
-            for x in eeg[0]:
+            print("computing spectrum...")
+            return compute_spectrum(np.transpose(data)[0], stream.get_sampling_rate(), 30)
+        except Exception as e:
+            print(e)
+            return None
+
+        try:
+            for x in eeg[var_channel]:
                 stats.push(x)
             alpha = np.log10(stats.variance())
 
@@ -379,9 +391,10 @@ def neurofeedback():
         except Exception as e:
             print(e)
 
-        return data
+        return np.transpose(data)
 
-    plotter = SignalPlotter(["A", "B", "C", "D"], data_source)
+    plotter = SignalPlotter(["TP9 spectrum"], data_source)
+    #plotter = SignalPlotter(["TP9", "AF7", "AF8", "TP10", "AUX"], data_source)
     plotter.show()
 
     stream.stop()

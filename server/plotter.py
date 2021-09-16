@@ -40,17 +40,26 @@ class SignalPlotter:
     def draw(self, *_args):
         """Plot data."""
         self.clear()
-        self.set_ylim(-200, 200)
 
         data = self.data_source()
 
+        # If data is a tuple its most likely a spectrum.
+        if type(data) is tuple:
+            self.set_ylim(0, 2)
+            for n, ax in enumerate(self.axs):
+                ax.set_title(self.channel_names[0])
+            self.axs[0].plot(*data)
+            return
+
+        self.set_ylim(-200, 200)
         data_channels = [[d[i] for d in data] for i in range(self.nchannels)]
 
         for n, ax in enumerate(self.axs):
             ax.set_title(self.channel_names[n])
 
-        for ax, channel in zip(self.axs, data_channels):
+        for ax, channel in zip(self.axs, data):
             ax.plot(channel)
+
 
     def show(self):
         """Show matplotlib window."""
