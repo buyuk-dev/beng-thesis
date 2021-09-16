@@ -225,6 +225,23 @@ def compute_spectrum(X, fs, cutoff=np.inf):
     return freq[1:], fft[1:]
 
 
+class BandPassFilter:
+    def __init__(self, band, sampling, order=10):
+        """Initialize butterworth bandpass filter."""
+        self.band = band
+        self.sampling = sampling
+        self.order = order
+        self.sos = signal.butter(
+            N=self.order, Wn=self.band, btype="bandpass", output="sos", fs=self.sampling
+        )
+        self.z = np.zeros((self.sos.shape[0], 2))
+
+    def apply(self, X):
+        """Returns filtered signal."""
+        Y, self.z = signal.sosfilt(self.sos, X, zi=self.z)
+        return Y
+
+
 def neurofeedback():
 
     from server import configuration
@@ -275,11 +292,11 @@ def neurofeedback():
     # Simulate real-time signal
     received = 0
     chunk_size = 10
-    z = np.zeros((sos.shape[0], 2))
     filtered = []
+    F = BandPassFilter((low, high), fs)
     while received < data.shape[0]:
         received += chunk_size
-        out, z = signal.sosfilt(sos, data[received - chunk_size : received], zi=z)
+        out = F.apply(data[received - chunk_size : received])
         filtered.extend(out)
     plt.title("online filtered")
     plt.plot(filtered)
