@@ -5,7 +5,7 @@
 
 https://www.nature.com/articles/s41598-020-75379-w
 https://www.researchgate.net/publication/338186731_Consumer_grade_EEG_Measuring_Sensors_as_Research_Tools_A_Review
-
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6479797/
 
 ## Youtube videos
 

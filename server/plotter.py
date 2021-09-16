@@ -6,7 +6,7 @@
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 
-from server.muse import DataCollector, Stream
+# from server.muse import DataCollector, Stream
 
 
 class SignalPlotter:
@@ -54,29 +54,29 @@ class SignalPlotter:
 
     def show(self):
         """Show matplotlib window."""
-        _ = FuncAnimation(self.fig, self.draw, interval=100)
+        _ = FuncAnimation(self.fig, self.draw, interval=20)
         pyplot.show()
 
 
-def main_plot():
-    """Function that connects to a muse device and displays live data graph."""
-    stream = Stream(configuration.muse.get_address())
-    stream.start()
-
-    collector = DataCollector(stream, 3)
-    collector.start()
-
-    def data_source():
-        """ """
-        with collector.lock:
-            return collector.data.copy()
-
-    plotter = SignalPlotter(stream.channels, data_source)
-    plotter.show()
-
-    collector.stop()
-    stream.stop()
-
-
-if __name__ == "__main__":
-    main_plot()
+# def main_plot():
+#    """Function that connects to a muse device and displays live data graph."""
+#    stream = Stream(configuration.muse.get_address())
+#    stream.start()
+#
+#    collector = DataCollector(stream, 3)
+#    collector.start()
+#
+#    def data_source():
+#        """ """
+#        with collector.lock:
+#            return collector.data.copy()
+#
+#    plotter = SignalPlotter(stream.channels, data_source)
+#    plotter.show()
+#
+#    collector.stop()
+#    stream.stop()
+#
+#
+# if __name__ == "__main__":
+#    main_plot()

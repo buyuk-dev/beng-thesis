@@ -207,6 +207,7 @@ class DataCollector(utils.StoppableThread):
 
 from scipy import signal
 import matplotlib.pyplot as plt
+from server.plotter import SignalPlotter
 import numpy as np
 
 
@@ -226,7 +227,10 @@ def compute_spectrum(X, fs, cutoff=np.inf):
 
 
 class BandPassFilter:
-    """Butterworth band pass filter."""
+    """Butterworth band pass filter.
+
+    TODO: Do timestamps require any correction after applying filter?
+    """
 
     def __init__(self, band, sampling, order=10):
         """Initialize butterworth bandpass filter."""
@@ -243,95 +247,144 @@ class BandPassFilter:
         Y, self.z = signal.sosfilt(self.sos, X, zi=self.z)
         return Y
 
-    def plot_frequency_response(self, max_freq=64):
+    def compute_frequency_response(self, max_freq=64):
         """Plot frequency response using matplotlib."""
         w, h = signal.sosfreqz(self.sos, worN=max_freq)
         db = 20 * np.log10(np.maximum(np.abs(h), 1e-5))
-        plt.title("freq response")
-        plt.plot(w / np.pi, db)
-        plt.show()
+        return w / np.pi, db
+
+
+def generate_complex_signal(freqs, amps, duration, fs):
+    """Generate complex signal that is a sum of sine waves with
+    given set of frequencies and amplitudes.
+    """
+    ts = np.linspace(0.0, duration, int(fs * duration))
+    data = sum(A * np.sin(2 * np.pi * f * ts) for A, f in zip(amps, freqs))
+    return data, ts
+
+
+def plot(data, title):
+    "Plot data with a given title." ""
+    plt.title(title)
+    plt.plot(*data)
+    plt.show()
+
+
+import math
+
+
+class RunningStats:
+    def __init__(self):
+        self.n = 0
+        self.old_m = 0
+        self.new_m = 0
+        self.old_s = 0
+        self.new_s = 0
+
+    def clear(self):
+        self.n = 0
+
+    def push(self, x):
+        self.n += 1
+
+        if self.n == 1:
+            self.old_m = self.new_m = x
+            self.old_s = 0
+        else:
+            self.new_m = self.old_m + (x - self.old_m) / self.n
+            self.new_s = self.old_s + (x - self.old_m) * (x - self.new_m)
+
+            self.old_m = self.new_m
+            self.old_s = self.new_s
+
+    def mean(self):
+        return self.new_m if self.n else 0.0
+
+    def variance(self):
+        return self.new_s / (self.n - 1) if self.n > 1 else 0.0
+
+    def standard_deviation(self):
+        return math.sqrt(self.variance())
 
 
 def neurofeedback():
+    """Implement simple neurofeedback pipeline."""
     from server import configuration
 
-    # Design bandpass butterworth IIR filter for <8-13>Hz band.
-    fs = 256
-    band = (5, 40)
+    class DummyStream:
+        def stop(self):
+            pass
 
-    # Generate complex signal
-    freq_comp = [10, 60]
-    amp_comp = [1, 0.1]
-    duration = 60.0
-    ts = np.linspace(0.0, duration, int(fs * duration))
-    data = sum(A * np.sin(2 * np.pi * f * ts) for A, f in zip(amp_comp, freq_comp))
+        def get_sampling_rate(self):
+            return 32
 
-    plt.title("Signal")
-    plt.plot(ts, data)
-    plt.show()
+        def get_channels_count(self):
+            return 5
 
-    plt.title("Signal's spectrum")
-    plt.plot(*compute_spectrum(data, fs))
-    plt.show()
+        def pull_chunk(self):
+            return (np.random.randint(0, 200, (256, 4)), np.linspace(0, 10, 10))
 
-    # Filter signal offline
-    offline_filter = BandPassFilter(band, fs)
-    offline_filter.plot_frequency_response()
-
-    filtered = offline_filter.apply(data)
-    plt.title("Offline filtered signal")
-    plt.plot(filtered)
-    plt.show()
-
-    plt.title("Offline filtered signal spectrum")
-    plt.plot(*compute_spectrum(filtered, fs))
-    plt.show()
-
-    # Simulate real-time signal
-    chunk_size = 10
-    filtered = []
-
-    online_filter = BandPassFilter(band, fs)
-    while len(filtered) < data.shape[0] - chunk_size:
-        filtered.extend(
-            online_filter.apply(data[len(filtered) : len(filtered) + chunk_size])
-        )
-
-    plt.title("Online filtered signal")
-    plt.plot(filtered)
-    plt.show()
-
-    plt.title("Online filtered signal spectrum")
-    plt.plot(*compute_spectrum(filtered, fs))
-    plt.show()
-
-    return
-
-    # Run processing.
+    # stream = DummyStream()
     stream = Stream(configuration.muse.get_address())
     stream.start()
+    input("press enter when stream starts...")
 
-    sampling = stream.get_sampling_rate()
-    window = 10 * sampling
+    filters = [
+        BandPassFilter((8, 13), stream.get_sampling_rate())
+        for _ in range(stream.get_channels_count())
+    ]
+    # plot(filters[0].compute_frequency_response(), "filter response")
 
-    collector = DataCollector(stream, window)
-    collector.start()
+    data = []
 
-    while True:
-        data = collector.get_data()
+    window = stream.get_sampling_rate() * 5
+    stats = RunningStats()
+    prev_alpha = None
 
-        # Apply bandpass filter to all channels in the data:
-        filtered = []
-        for channel in data:
-            filtered.append(
-                utils.butter_bandpass_filter(
-                    channel,
-                    configuration.neurofeedback.get_low_cutoff(),
-                    configuration.neurofeedback.get_high_cutoff(),
-                    sampling,
-                    order=3,
-                )
+    def data_source():
+        nonlocal data
+        nonlocal window
+        nonlocal stream
+        nonlocal filters
+        nonlocal stats
+        nonlocal prev_alpha
+
+        eeg, ts = stream.pull_chunk()
+        eeg = np.transpose(eeg)
+
+        data.extend(
+            np.transpose(
+                [bandpass.apply(channel) for channel, bandpass in zip(eeg, filters)]
             )
+        )
+
+        if len(data) > window:
+            data = data[-window:]
+
+        try:
+            for x in eeg[0]:
+                stats.push(x)
+            alpha = np.log10(stats.variance())
+
+            if prev_alpha is not None:
+                direction = "0"
+                if alpha > prev_alpha:
+                    direction = "UP"
+                if alpha < prev_alpha:
+                    direction = "DOWN"
+
+                print(f"{direction} {alpha}")
+            prev_alpha = alpha
+
+        except Exception as e:
+            print(e)
+
+        return data
+
+    plotter = SignalPlotter(["A", "B", "C", "D"], data_source)
+    plotter.show()
+
+    stream.stop()
 
 
 if __name__ == "__main__":
