@@ -226,6 +226,8 @@ def compute_spectrum(X, fs, cutoff=np.inf):
 
 
 class BandPassFilter:
+    """Butterworth band pass filter."""
+
     def __init__(self, band, sampling, order=10):
         """Initialize butterworth bandpass filter."""
         self.band = band
@@ -241,17 +243,21 @@ class BandPassFilter:
         Y, self.z = signal.sosfilt(self.sos, X, zi=self.z)
         return Y
 
+    def plot_frequency_response(self, max_freq=64):
+        """Plot frequency response using matplotlib."""
+        w, h = signal.sosfreqz(self.sos, worN=max_freq)
+        db = 20 * np.log10(np.maximum(np.abs(h), 1e-5))
+        plt.title("freq response")
+        plt.plot(w / np.pi, db)
+        plt.show()
+
 
 def neurofeedback():
-
     from server import configuration
 
     # Design bandpass butterworth IIR filter for <8-13>Hz band.
-
     fs = 256
-    nyq = fs * 0.5
-    low, high = 5, 40
-    sos = signal.butter(N=10, Wn=(low, high), btype="bandpass", output="sos", fs=fs)
+    band = (5, 40)
 
     # Generate complex signal
     freq_comp = [10, 60]
@@ -260,52 +266,43 @@ def neurofeedback():
     ts = np.linspace(0.0, duration, int(fs * duration))
     data = sum(A * np.sin(2 * np.pi * f * ts) for A, f in zip(amp_comp, freq_comp))
 
-    plt.title("generated signal")
+    plt.title("Signal")
     plt.plot(ts, data)
     plt.show()
 
-    # Plot spectrue
-    freqs, amps = compute_spectrum(data, fs)
-    plt.title("signal spectrum")
-    plt.plot(freqs, amps)
+    plt.title("Signal's spectrum")
+    plt.plot(*compute_spectrum(data, fs))
     plt.show()
 
-    # Plot filter frequency responose.
-    w, h = signal.sosfreqz(sos, worN=64)
-    db = 20 * np.log10(np.maximum(np.abs(h), 1e-5))
-    plt.title("freq response")
-    plt.plot(w / np.pi, db)
-    plt.show()
+    # Filter signal offline
+    offline_filter = BandPassFilter(band, fs)
+    offline_filter.plot_frequency_response()
 
-    # Filter signal
-    filtered = signal.sosfilt(sos, data)
-    plt.title("offline filtered")
+    filtered = offline_filter.apply(data)
+    plt.title("Offline filtered signal")
     plt.plot(filtered)
     plt.show()
 
-    # Plot spectrue
-    freqs, amps = compute_spectrum(filtered, fs)
-    plt.title("offline filtered spectrum")
-    plt.plot(freqs, amps)
+    plt.title("Offline filtered signal spectrum")
+    plt.plot(*compute_spectrum(filtered, fs))
     plt.show()
 
     # Simulate real-time signal
-    received = 0
     chunk_size = 10
     filtered = []
-    F = BandPassFilter((low, high), fs)
-    while received < data.shape[0]:
-        received += chunk_size
-        out = F.apply(data[received - chunk_size : received])
-        filtered.extend(out)
-    plt.title("online filtered")
+
+    online_filter = BandPassFilter(band, fs)
+    while len(filtered) < data.shape[0] - chunk_size:
+        filtered.extend(
+            online_filter.apply(data[len(filtered) : len(filtered) + chunk_size])
+        )
+
+    plt.title("Online filtered signal")
     plt.plot(filtered)
     plt.show()
 
-    # Plot spectrue
-    freqs, amps = compute_spectrum(filtered, fs)
-    plt.title("online filtered spectrum")
-    plt.plot(freqs, amps)
+    plt.title("Online filtered signal spectrum")
+    plt.plot(*compute_spectrum(filtered, fs))
     plt.show()
 
     return
