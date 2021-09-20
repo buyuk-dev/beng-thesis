@@ -45,7 +45,7 @@ class SignalPlotter:
 
         # If data is a tuple its most likely a spectrum.
         if type(data) is tuple:
-            self.set_ylim(0, 2)
+            self.set_ylim(0, 0.7)
             for n, ax in enumerate(self.axs):
                 ax.set_title(self.channel_names[0])
             self.axs[0].plot(*data)
@@ -59,7 +59,6 @@ class SignalPlotter:
 
         for ax, channel in zip(self.axs, data):
             ax.plot(channel)
-
 
     def show(self):
         """Show matplotlib window."""
