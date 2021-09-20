@@ -11,7 +11,7 @@ rcParams["font.family"] = "monospace"
 
 import numpy as np
 
-import exporter
+from server import exporter
 
 
 def plot_data(data_frame):
