@@ -37,11 +37,10 @@ def print_counts(labels):
         print(label + ": " + str(counts[label]))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("dir", nargs="?", default=".")
     args = parser.parse_args()
 
     labels = load_labels(args.dir)
     print_counts(labels)
-

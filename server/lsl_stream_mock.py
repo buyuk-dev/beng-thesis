@@ -8,9 +8,9 @@ from pylsl import StreamInfo, StreamOutlet, local_clock
 
 class MockEegStream:
 
-    CHANNEL_NAMES = ['TP9', 'AF7', 'AF8', 'TP10', 'Right AUX']
+    CHANNEL_NAMES = ["TP9", "AF7", "AF8", "TP10", "Right AUX"]
     SAMPLING_RATE = 256
-    SAMPLE_TYPE = 'float32'
+    SAMPLE_TYPE = "float32"
     UNIQUE_ID = "MockMuse"
     MANUFACTURER = "Muse"
     SAMPLE_UNIT = "microvolts"
@@ -24,21 +24,19 @@ class MockEegStream:
             len(self.CHANNEL_NAMES),
             self.SAMPLING_RATE,
             self.SAMPLE_TYPE,
-            self.UNIQUE_ID
+            self.UNIQUE_ID,
         )
 
-        self.eeg_info.desc().append_child_value(
-            "manufacturer",
-            self.MANUFACTURER
-        )
+        self.eeg_info.desc().append_child_value("manufacturer", self.MANUFACTURER)
 
         eeg_channels = self.eeg_info.desc().append_child("channels")
 
         for channel_name in self.CHANNEL_NAMES:
-            eeg_channels.append_child("channel") \
-                .append_child_value("label", channel_name) \
-                .append_child_value("unit", self.SAMPLE_UNIT) \
-                .append_child_value("type", self.STREAM_TYPE)
+            eeg_channels.append_child("channel").append_child_value(
+                "label", channel_name
+            ).append_child_value("unit", self.SAMPLE_UNIT).append_child_value(
+                "type", self.STREAM_TYPE
+            )
 
         # chunk_size can be overriden by StreamInlet.
         # optional arg: max_buffered speicies max amount of data to buffer.
@@ -52,7 +50,7 @@ class MockEegStream:
         self.timer_sample_count = 0
 
     def push_samples(self):
-        now = local_clock() # returns current timestamp in seconds.
+        now = local_clock()  # returns current timestamp in seconds.
         dt = now - self.ts
         sample_count = int(dt * self.SAMPLING_RATE)
 
@@ -81,5 +79,5 @@ def main():
         time.sleep(0.1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
