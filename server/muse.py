@@ -115,7 +115,8 @@ class Stream:
 
     def pull_chunk(self, timeout=0.1):
         """Pull data chunk from the stream."""
-        return self.inlet.pull_chunk(timeout=timeout)
+        data, ts = self.inlet.pull_chunk(timeout=timeout)
+        return data, [t + self.inlet.time_correction() for t in ts]
 
     def get_channels_count(self):
         """Return number of channels in the connected stream."""

@@ -1,7 +1,7 @@
 """ 2021 Created by michal@buyuk-dev.com
 """
 
-from pylsl import StreamInfo, StreamInlet, StreamOutlet, resolve_stream
+from pylsl import StreamInfo, StreamInlet, StreamOutlet, resolve_stream, local_clock
 
 
 class MarkerStream:
@@ -13,7 +13,7 @@ class MarkerStream:
     def push(self, marker):
         if not marker in self.markers:
             raise ValueError(f"Marker {marker} unknown.")
-        self.outlet.push_sample([marker])
+        self.outlet.push_sample([marker], local_clock())
 
 
 class MarkerReader:

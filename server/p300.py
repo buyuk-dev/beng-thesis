@@ -54,6 +54,8 @@ class OddballApp:
         """Break between the trials."""
         if self.trials_counter == self.max_trials:
             self.marker_stream.push("stop")
+            self.text.set("start")
+            self.trials_counter = 0
             return
 
         self.text.set("")
