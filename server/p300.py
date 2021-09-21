@@ -1,53 +1,82 @@
 """ 2021 Created by michal@buyuk-dev.com
 """
 
-
 import tkinter as tk
 import random
 
-
-window = tk.Tk()
-window.geometry("600x400")
-
-text = tk.StringVar()
-text.set("START")
-
-btn = tk.Button(
-    textvariable=text,
-    height=400,
-    width=600,
-    bg="lightgrey",
-    fg="black"
-)
-
-btn['font'] = ('times', 300, 'bold')
-btn.pack()
+from server.markers import MarkerStream
 
 
-event_counter = 0
-NUMBER_OF_TRIALS = 100
+class OddballApp:
+    def __init__(self, ntrials=100):
+        """Create task window."""
+
+        # Root window
+        self.root = tk.Tk()
+        self.root.geometry("800x400")
+
+        # Button label
+        self.text = tk.StringVar()
+        self.text.set("start")
+
+        # Button
+        self.btn = tk.Button(
+            self.root,
+            textvariable=self.text,
+            bg="lightgrey",
+            fg="black",
+            width=800,
+            height=400,
+        )
+        self.btn["font"] = ("times", 300, "bold")
+        self.btn.config(command=lambda: self.click())
+        self.btn.pack()
+
+        # Experiment parameters
+        self.trials_counter = 0
+        self.max_trials = ntrials
+        self.event_duration = 500
+        self.pause_duration = 1000
+        self.event_stream = []
+
+        # Generate random stream of events (letters) to show.
+        events = list("ABCDE")
+        while len(self.event_stream) < self.max_trials:
+            random.shuffle(events)
+            self.event_stream.extend(events)
+
+        # Marker stream
+        self.marker_stream = MarkerStream(events)
+        self.marker_stream.markers.append("stop")
+        self.marker_stream.markers.append("start")
+
+    def pause(self):
+        """Break between the trials."""
+        if self.trials_counter == self.max_trials:
+            self.marker_stream.push("stop")
+            return
+
+        self.text.set("")
+        self.root.after(self.pause_duration, lambda: self.show_letter())
+
+    def show_letter(self):
+        """Random trial: show next letter from the stream."""
+        event = self.event_stream[self.trials_counter]
+        self.trials_counter += 1
+        self.text.set(event)
+        self.marker_stream.push(event)
+        self.root.after(self.event_duration, lambda: self.pause())
+
+    def click(self):
+        """Start the task."""
+        self.marker_stream.push("start")
+        self.pause()
+
+    def run(self):
+        """Show window."""
+        self.root.mainloop()
 
 
-def pause():
-    global text
-    global window
-    if event_counter == NUMBER_OF_TRIALS:
-        exit()
-
-    text.set("")
-    window.after(1000, show_letter)
-
-
-def show_letter():
-    global text
-    global window
-    text.set(random.choice("ABCDE"))
-    window.after(500, pause)
-
-
-def click():
-    show_letter()
-
-
-btn.config(command=click)
-window.mainloop()
+if __name__ == "__main__":
+    app = OddballApp(ntrials=10)
+    app.run()
